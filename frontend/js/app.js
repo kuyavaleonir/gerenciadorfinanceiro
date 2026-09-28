@@ -81,6 +81,26 @@ document.addEventListener('DOMContentLoaded', () => {
     // =========================================================================
     // SESSÃO SUPABASE & AUTENTICAÇÃO
     // =========================================================================
+    // Trata hash de autenticação no retorno do Supabase Google OAuth (#access_token=...)
+    if (window.location.hash && window.location.hash.includes('access_token')) {
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+        if (accessToken && supabaseClient) {
+            supabaseClient.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken || ''
+            }).then(({ data, error }) => {
+                if (data && data.session && data.session.user) {
+                    _setUserFromSession(data.session.user);
+                    atualizarEstadoAuth();
+                    mostrarToast('Login com Google realizado com sucesso! 🎉', 'success');
+                }
+                history.replaceState(null, document.title, window.location.pathname + window.location.search);
+            });
+        }
+    }
+
     if (supabaseClient) {
         supabaseClient.auth.onAuthStateChange((event, session) => {
             if (session && session.user) {
@@ -114,11 +134,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnGoogleLogin) {
         btnGoogleLogin.addEventListener('click', async () => {
             mostrarToast('Redirecionando para o Google...', 'info');
+            const targetRedirect = window.location.origin + window.location.pathname;
             if (supabaseClient) {
                 try {
                     const { error } = await supabaseClient.auth.signInWithOAuth({
                         provider: 'google',
-                        options: { redirectTo: window.location.origin }
+                        options: { redirectTo: targetRedirect }
                     });
                     if (error) mostrarToast('Erro: ' + error.message, 'error');
                 } catch {

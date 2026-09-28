@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Controle Financeiro - Assistente Inteligente</title>
+    
+    <!-- PWA & Mobile Meta Tags -->
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Finanças">
+    <link rel="manifest" href="/static/manifest.json">
+    <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="app-background">
+        <div class="glow-orb orb-1"></div>
+        <div class="glow-orb orb-2"></div>
+        <div class="glow-orb orb-3"></div>
+    </div>
+
+    <div class="app-container">
+        <!-- Header Principal -->
+        <header class="app-header">
+            <div class="brand">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-wallet"></i>
+                </div>
+                <div class="brand-text">
+                    <h1>Controle Financeiro</h1>
+                    <span class="badge-db" id="db-indicator">
+                        <span class="dot"></span> <span id="db-status-text">Carregando...</span>
+                    </span>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <button class="btn btn-secondary" id="btn-refresh" title="Atualizar dados">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+                <button class="btn btn-primary" id="btn-open-modal">
+                    <i class="fa-solid fa-plus"></i> Nova Transação
+                </button>
+            </div>
+        </header>
+
+        <!-- Cards de Resumo Financeiro (KPIs) -->
+        <section class="kpi-grid">
+            <!-- Card Saldo -->
+            <div class="kpi-card card-saldo">
+                <div class="card-header">
+                    <span>Saldo Atual</span>
+                    <div class="card-icon"><i class="fa-solid fa-scale-balanced"></i></div>
+                </div>
+                <div class="card-amount" id="val-saldo-atual">R$ 0,00</div>
+                <div class="card-footer" id="saldo-status-text">
+                    <i class="fa-solid fa-chart-line"></i> Resumo acumulado
+                </div>
+            </div>
+
+            <!-- Card Receitas -->
+            <div class="kpi-card card-receitas">
+                <div class="card-header">
+                    <span>Total Receitas</span>
+                    <div class="card-icon icon-receita"><i class="fa-solid fa-arrow-trend-up"></i></div>
+                </div>
+                <div class="card-amount text-success" id="val-total-receitas">R$ 0,00</div>
+                <div class="card-footer">
+                    <span class="dot green"></span> Entradas acumuladas
+                </div>
+            </div>
+
+            <!-- Card Despesas -->
+            <div class="kpi-card card-despesas">
+                <div class="card-header">
+                    <span>Total Despesas</span>
+                    <div class="card-icon icon-despesa"><i class="fa-solid fa-arrow-trend-down"></i></div>
+                </div>
+                <div class="card-amount text-danger" id="val-total-despesas">R$ 0,00</div>
+                <div class="card-footer">
+                    <span class="dot red"></span> Saídas acumuladas
+                </div>
+            </div>
+
+            <!-- Card Estatísticas -->
+            <div class="kpi-card card-stats">
+                <div class="card-header">
+                    <span>Total Registro</span>
+                    <div class="card-icon icon-stats"><i class="fa-solid fa-receipt"></i></div>
+                </div>
+                <div class="card-amount" id="val-qtd-transacoes">0</div>
+                <div class="card-footer">
+                    Transações cadastradas
+                </div>
+            </div>
+        </section>
+
+        <!-- Barra Visual de Proporção Receita vs Despesa -->
+        <section class="ratio-section">
+            <div class="ratio-header">
+                <span>Distribuição Financeira</span>
+                <span id="ratio-percent">0% despendido</span>
+            </div>
+            <div class="ratio-bar-container">
+                <div class="ratio-bar-fill green" id="bar-receita" style="width: 50%;"></div>
+                <div class="ratio-bar-fill red" id="bar-despesa" style="width: 50%;"></div>
+            </div>
+        </section>
+
+        <!-- Seção Principal de Conteúdo -->
+        <main class="main-content">
+            <div class="content-header">
+                <h2><i class="fa-solid fa-list-check"></i> Extrato de Transações</h2>
+
+                <div class="filter-toolbar">
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="search-input" placeholder="Buscar por descrição ou categoria...">
+                    </div>
+
+                    <div class="filter-tabs">
+                        <button class="tab-btn active" data-type="todos">Todos</button>
+                        <button class="tab-btn" data-type="receita"><i class="fa-solid fa-circle-arrow-up green-txt"></i> Receitas</button>
+                        <button class="tab-btn" data-type="despesa"><i class="fa-solid fa-circle-arrow-down red-txt"></i> Despesas</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lista / Tabela de Transações -->
+            <div class="table-container">
+                <table class="transaction-table">
+                    <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Descrição</th>
+                            <th>Categoria</th>
+                            <th>Data</th>
+                            <th>Valor</th>
+                            <th class="text-right">Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transaction-list">
+                        <!-- Itens renderizados dinamicamente pelo app.js -->
+                    </tbody>
+                </table>
+                <div class="empty-state hidden" id="empty-state">
+                    <div class="empty-icon"><i class="fa-solid fa-folder-open"></i></div>
+                    <p>Nenhuma transação encontrada.</p>
+                    <button class="btn btn-secondary btn-sm" id="btn-empty-add">+ Adicionar Primeira Transação</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Adicionar Transação -->
+    <div class="modal-overlay hidden" id="modal-transacao">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modal-title"><i class="fa-solid fa-plus-circle"></i> Nova Transação</h3>
+                <button class="modal-close" id="btn-close-modal">&times;</button>
+            </div>
+            
+            <form id="form-transacao" class="modal-body">
+                <div class="type-selector">
+                    <label class="type-option selected" id="opt-despesa">
+                        <input type="radio" name="tipo" value="despesa" checked>
+                        <i class="fa-solid fa-circle-arrow-down"></i> Despesa
+                    </label>
+                    <label class="type-option" id="opt-receita">
+                        <input type="radio" name="tipo" value="receita">
+                        <i class="fa-solid fa-circle-arrow-up"></i> Receita
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label for="valor">Valor (R$)</label>
+                    <div class="input-prefix">
+                        <span>R$</span>
+                        <input type="number" id="valor" step="0.01" min="0.01" placeholder="0.00" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="descricao">Descrição</label>
+                    <input type="text" id="descricao" placeholder="Ex: Supermercado, Almoço, Salário..." required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="categoria">Categoria</label>
+                        <select id="categoria" required>
+                            <option value="">Selecione...</option>
+                            <option value="Alimentação">Alimentação</option>
+                            <option value="Transporte">Transporte</option>
+                            <option value="Moradia">Moradia</option>
+                            <option value="Lazer">Lazer</option>
+                            <option value="Saúde">Saúde</option>
+                            <option value="Educação">Educação</option>
+                            <option value="Salário">Salário</option>
+                            <option value="Investimentos">Investimentos</option>
+                            <option value="Outros">Outros</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="data">Data</label>
+                        <input type="date" id="data" required>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btn-save">
+                        <i class="fa-solid fa-check"></i> Salvar Transação
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <script src="/static/js/app.js"></script>
+    <script>
+        // Registra Service Worker se suportado
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/sw.js')
+                    .then(reg => console.log('PWA Service Worker registrado!', reg.scope))
+                    .catch(err => console.log('Falha ao registrar Service Worker:', err));
+            });
+        }
+    </script>
+</body>
+</html>

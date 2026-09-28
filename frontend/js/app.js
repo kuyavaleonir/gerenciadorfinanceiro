@@ -134,7 +134,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnGoogleLogin) {
         btnGoogleLogin.addEventListener('click', async () => {
             mostrarToast('Redirecionando para o Google...', 'info');
-            const targetRedirect = window.location.origin + window.location.pathname;
+            const currentOrigin = window.location.origin;
+            const targetRedirect = currentOrigin.includes('localhost') || currentOrigin.includes('127.0.0.1')
+                ? 'https://gerenciadorfinanceiro.onrender.com/'
+                : currentOrigin + window.location.pathname;
             if (supabaseClient) {
                 try {
                     const { error } = await supabaseClient.auth.signInWithOAuth({

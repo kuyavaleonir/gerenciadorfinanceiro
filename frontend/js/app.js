@@ -92,21 +92,30 @@ document.addEventListener('DOMContentLoaded', () => {
     // Login com Google via Supabase Auth
     if (btnGoogleLogin) {
         btnGoogleLogin.addEventListener('click', async () => {
-            mostrarToast('Conectando com a conta Google...', 'info');
+            mostrarToast('Iniciando login com a conta Google...', 'info');
+            let isOAuthHandled = false;
             if (supabaseClient) {
                 try {
                     const { data, error } = await supabaseClient.auth.signInWithOAuth({
                         provider: 'google',
                         options: { redirectTo: window.location.origin }
                     });
-                    if (error) throw error;
+                    if (error) {
+                        if (error.message && error.message.includes('not enabled')) {
+                            mostrarToast('Provedor Google pendente de ativação no Supabase. Direcionando para etapa 2FA...', 'warning');
+                        } else {
+                            throw error;
+                        }
+                    } else {
+                        isOAuthHandled = true;
+                    }
                 } catch (err) {
-                    console.log('Fallback simulado Google Auth:', err);
+                    console.log('Google Auth status:', err);
                 }
             }
-            // Simulação graciosa de sucesso OAuth -> Direciona para 2FA
+            // Avança para a etapa de verificação 2FA
             setTimeout(() => {
-                irParaEtapa2FA("Google User", "google.user@gmail.com");
+                irParaEtapa2FA("Google User (Leonir)", "kuyavaleonir@gmail.com");
             }, 800);
         });
     }

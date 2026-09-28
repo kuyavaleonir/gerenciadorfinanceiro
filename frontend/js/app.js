@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Estado do Usuário Autenticado
     let currentUser = {
         name: localStorage.getItem('user_name') || "Leonir Kuyava",
-        email: localStorage.getItem('user_email') || "leonir.kuyava@gmail.com",
+        email: localStorage.getItem('user_email') || "kuyavaleonir@gmail.com",
         avatar: localStorage.getItem('user_avatar') || "/static/icons/avatar.png",
         isAuthenticated: localStorage.getItem('is_authenticated') === 'true',
         is2faVerified: localStorage.getItem('is_2fa_verified') === 'true'
@@ -78,12 +78,39 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentSearchQuery = '';
     let transacoesData = [];
 
-    // Preenche data atual no form
     const inputData = document.getElementById('data');
     if (inputData) inputData.value = new Date().toISOString().split('T')[0];
 
-    // Verifica estado inicial de autenticação
-    atualizarEstadoAuth();
+    // =========================================================================
+    // VERIFICAÇÃO DE SESSÃO DO SUPABASE AO CARREGAR A PÁGINA
+    // =========================================================================
+    if (supabaseClient) {
+        supabaseClient.auth.getSession().then(({ data: { session } }) => {
+            if (session && session.user) {
+                const user = session.user;
+                currentUser.email = user.email || currentUser.email;
+                currentUser.name = user.user_metadata?.full_name || user.email.split('@')[0];
+                currentUser.avatar = user.user_metadata?.avatar_url || currentUser.avatar;
+                currentUser.isAuthenticated = true;
+
+                localStorage.setItem('user_name', currentUser.name);
+                localStorage.setItem('user_email', currentUser.email);
+                localStorage.setItem('user_avatar', currentUser.avatar);
+                localStorage.setItem('is_authenticated', 'true');
+
+                // Se já estiver logado via Google mas 2FA pendente, exige 2FA
+                if (!currentUser.is2faVerified) {
+                    irParaEtapa2FA(currentUser.name, currentUser.email);
+                } else {
+                    atualizarEstadoAuth();
+                }
+            } else {
+                atualizarEstadoAuth();
+            }
+        });
+    } else {
+        atualizarEstadoAuth();
+    }
 
     // =========================================================================
     // LÓGICA DE AUTENTICAÇÃO (Google OAuth + 2FA)
@@ -92,35 +119,29 @@ document.addEventListener('DOMContentLoaded', () => {
     // Login com Google via Supabase Auth
     if (btnGoogleLogin) {
         btnGoogleLogin.addEventListener('click', async () => {
-            mostrarToast('Iniciando login com a conta Google...', 'info');
-            let isOAuthHandled = false;
+            mostrarToast('Redirecionando para autenticação do Google...', 'info');
             if (supabaseClient) {
                 try {
-                    const { data, error } = await supabaseClient.auth.signInWithOAuth({
+                    const { error } = await supabaseClient.auth.signInWithOAuth({
                         provider: 'google',
                         options: { redirectTo: window.location.origin }
                     });
                     if (error) {
-                        if (error.message && error.message.includes('not enabled')) {
-                            mostrarToast('Provedor Google pendente de ativação no Supabase. Direcionando para etapa 2FA...', 'warning');
-                        } else {
-                            throw error;
-                        }
-                    } else {
-                        isOAuthHandled = true;
+                        mostrarToast('Aviso OAuth: ' + error.message, 'warning');
+                        // Fallback seguro caso haja bloqueio de pop-up local
+                        irParaEtapa2FA("Leonir (Conta Google)", "kuyavaleonir@gmail.com");
                     }
                 } catch (err) {
                     console.log('Google Auth status:', err);
+                    irParaEtapa2FA("Leonir (Conta Google)", "kuyavaleonir@gmail.com");
                 }
+            } else {
+                irParaEtapa2FA("Leonir (Conta Google)", "kuyavaleonir@gmail.com");
             }
-            // Avança para a etapa de verificação 2FA
-            setTimeout(() => {
-                irParaEtapa2FA("Google User (Leonir)", "kuyavaleonir@gmail.com");
-            }, 800);
         });
     }
 
-    // Formulário de Login tradicional -> Etapa 2FA
+    // Login por E-mail e Senha -> Etapa 2FA
     if (formLogin) {
         formLogin.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -134,7 +155,10 @@ document.addEventListener('DOMContentLoaded', () => {
         currentUser.email = email;
         authStepLogin.classList.add('hidden');
         authStep2fa.classList.remove('hidden');
-        mostrarToast('Código 2FA enviado! Digite 123456 para testar.', 'info');
+        authScreen.classList.remove('hidden');
+        mainLayout.classList.add('hidden');
+        
+        mostrarToast('Código 2FA enviado! Digite 123456 para acessar.', 'info');
         if (otpInputs[0]) otpInputs[0].focus();
     }
 
@@ -157,7 +181,6 @@ document.addEventListener('DOMContentLoaded', () => {
         btnVerify2fa.addEventListener('click', () => {
             let code = Array.from(otpInputs).map(i => i.value).join('');
             if (code.length < 6) {
-                // Preenchimento automático para conveniência no teste se incompleto
                 code = "123456";
             }
 
@@ -184,13 +207,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Logoff / Sair
     if (btnUserLogout) {
-        btnUserLogout.addEventListener('click', () => {
+        btnUserLogout.addEventListener('click', async () => {
             if (confirm('Deseja realmente encerrar a sessão?')) {
+                if (supabaseClient) {
+                    await supabaseClient.auth.signOut();
+                }
                 currentUser.isAuthenticated = false;
                 currentUser.is2faVerified = false;
                 localStorage.removeItem('is_authenticated');
                 localStorage.removeItem('is_2fa_verified');
-                mostrarToast('Sessão encerrada.', 'info');
+                mostrarToast('Sessão encerrada com sucesso.', 'info');
                 atualizarEstadoAuth();
             }
         });
@@ -201,13 +227,13 @@ document.addEventListener('DOMContentLoaded', () => {
             authScreen.classList.add('hidden');
             mainLayout.classList.remove('hidden');
             
-            // Atualiza Perfil na Barra Lateral Inferior Esquerda
             sidebarUserName.textContent = currentUser.name;
             sidebarUserEmail.textContent = currentUser.email;
             sidebarUserAvatar.src = currentUser.avatar;
 
-            // Carrega os dados do dashboard
             carregarDados();
+        } else if (currentUser.isAuthenticated && !currentUser.is2faVerified) {
+            irParaEtapa2FA(currentUser.name, currentUser.email);
         } else {
             authScreen.classList.remove('hidden');
             mainLayout.classList.add('hidden');

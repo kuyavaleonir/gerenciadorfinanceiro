@@ -15,8 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // ESTADO GLOBAL DO USUÁRIO & NAVEGAÇÃO
     // =========================================================================
     let currentUser = {
-        name: localStorage.getItem('user_name') || "Leonir Kuyava",
-        email: localStorage.getItem('user_email') || "kuyavaleonir@gmail.com",
+        name: localStorage.getItem('user_name') || "",
+        email: localStorage.getItem('user_email') || "",
         avatar: localStorage.getItem('user_avatar') || "/static/icons/avatar.png",
         isAuthenticated: localStorage.getItem('is_authenticated') === 'true'
     };
@@ -33,14 +33,54 @@ document.addEventListener('DOMContentLoaded', () => {
     let chartInstance = null;
 
     // =========================================================================
-    // REFERÊNCIAS DOM PRINCIPAIS
+    // REFERÊNCIAS DOM - AUTENTICAÇÃO E NAVEGAÇÃO
     // =========================================================================
     const authScreen         = document.getElementById('auth-screen');
     const mainLayout         = document.getElementById('main-layout');
-    const formLogin          = document.getElementById('form-login');
-    const btnGoogleLogin     = document.getElementById('btn-google-login');
     const sidebarUserAvatar  = document.getElementById('sidebar-user-avatar');
 
+    // Abas e visualizações Auth
+    const tabBtnLogin        = document.getElementById('tab-btn-login');
+    const tabBtnRegister     = document.getElementById('tab-btn-register');
+    const authViewLogin      = document.getElementById('auth-view-login');
+    const authViewRegister   = document.getElementById('auth-view-register');
+    const authViewForgot     = document.getElementById('auth-view-forgot');
+
+    // Alertas Auth
+    const authAlert          = document.getElementById('auth-alert');
+    const authAlertText      = document.getElementById('auth-alert-text');
+    const authAlertIcon      = document.getElementById('auth-alert-icon');
+    const btnCloseAlert      = document.getElementById('btn-close-alert');
+
+    // Formulários Auth
+    const formLogin          = document.getElementById('form-login');
+    const formRegister       = document.getElementById('form-register');
+    const formForgot         = document.getElementById('form-forgot-password');
+
+    // Botões e Ações Auth
+    const btnGoogleLogin     = document.getElementById('btn-google-login');
+    const googleSpinner      = document.getElementById('google-spinner');
+    const btnSubmitLogin     = document.getElementById('btn-submit-login');
+    const loginSpinner       = document.getElementById('login-spinner');
+    const btnSubmitRegister  = document.getElementById('btn-submit-register');
+    const registerSpinner    = document.getElementById('register-spinner');
+    const btnSubmitForgot    = document.getElementById('btn-submit-forgot');
+    const forgotSpinner      = document.getElementById('forgot-spinner');
+    const btnForgotPassword  = document.getElementById('btn-forgot-password');
+    const btnDemoLogin       = document.getElementById('btn-demo-login');
+    const btnUserLogout      = document.getElementById('btn-user-logout');
+
+    // Campos de inputs
+    const inputLoginEmail    = document.getElementById('login-email');
+    const inputLoginPass     = document.getElementById('login-password');
+    const checkRemember      = document.getElementById('login-remember');
+    const inputRegName       = document.getElementById('register-name');
+    const inputRegEmail      = document.getElementById('register-email');
+    const inputRegPass       = document.getElementById('register-password');
+    const inputRegConfirm    = document.getElementById('register-confirm-password');
+    const inputForgotEmail   = document.getElementById('forgot-email');
+
+    // Demais referências DOM do Dashboard
     const valSaldoAtual      = document.getElementById('val-saldo-atual');
     const valTotalReceitas   = document.getElementById('val-total-receitas');
     const valTotalDespesas   = document.getElementById('val-total-despesas');
@@ -72,15 +112,138 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnAvatarMenu      = document.getElementById('btn-avatar-menu');
     const btnCloseSettings   = document.getElementById('btn-close-settings');
     const btnSaveSettings    = document.getElementById('btn-save-settings');
-    const btnUserLogout      = document.getElementById('btn-user-logout');
     const inputAvatarUrl     = document.getElementById('input-avatar-url');
     const inputDisplayName   = document.getElementById('input-display-name');
 
     if (inputData) inputData.value = new Date().toISOString().split('T')[0];
 
+    // Carrega email lembrado anteriormente se existir
+    const savedEmail = localStorage.getItem('saved_login_email');
+    if (savedEmail && inputLoginEmail) {
+        inputLoginEmail.value = savedEmail;
+        if (checkRemember) checkRemember.checked = true;
+    }
+
     // =========================================================================
-    // SESSÃO SUPABASE & AUTENTICAÇÃO
+    // UTILITÁRIOS DA TELA DE AUTENTICAÇÃO
     // =========================================================================
+    function mostrarAlerta(mensagem, tipo = 'error') {
+        if (!authAlert) return;
+        authAlert.className = `auth-alert ${tipo}`;
+        if (authAlertText) authAlertText.textContent = mensagem;
+        if (authAlertIcon) {
+            const icons = {
+                error: 'fa-solid fa-circle-exclamation',
+                success: 'fa-solid fa-circle-check',
+                info: 'fa-solid fa-circle-info'
+            };
+            authAlertIcon.className = `auth-alert-icon ${icons[tipo] || icons.info}`;
+        }
+        authAlert.classList.remove('hidden');
+    }
+
+    function esconderAlerta() {
+        if (authAlert) authAlert.classList.add('hidden');
+    }
+
+    if (btnCloseAlert) {
+        btnCloseAlert.addEventListener('click', esconderAlerta);
+    }
+
+    function setBtnLoading(button, spinner, loading) {
+        if (!button) return;
+        button.disabled = loading;
+        if (spinner) {
+            if (loading) spinner.classList.remove('hidden');
+            else spinner.classList.add('hidden');
+        }
+    }
+
+    function traduzirErroSupabase(msg) {
+        if (!msg) return 'Ocorreu um erro no processamento. Tente novamente.';
+        const lower = msg.toLowerCase();
+        if (lower.includes('invalid login credentials')) return 'E-mail ou senha incorretos. Por favor, verifique.';
+        if (lower.includes('email not confirmed')) return 'E-mail ainda não confirmado. Por favor, verifique sua caixa de entrada.';
+        if (lower.includes('user already registered')) return 'Este e-mail já está cadastrado. Faça login ou recupere sua senha.';
+        if (lower.includes('password should be at least')) return 'A senha deve conter no mínimo 6 caracteres.';
+        if (lower.includes('signup requires a valid password')) return 'Por favor, informe uma senha válida.';
+        if (lower.includes('rate limit')) return 'Muitas tentativas em pouco tempo. Aguarde alguns instantes.';
+        if (lower.includes('network') || lower.includes('failed to fetch')) return 'Erro de conexão com o servidor de autenticação.';
+        return msg;
+    }
+
+    // Troca de abas (Login vs Cadastro vs Recuperar Senha)
+    function switchAuthView(viewName) {
+        esconderAlerta();
+        authViewLogin?.classList.add('hidden');
+        authViewRegister?.classList.add('hidden');
+        authViewForgot?.classList.add('hidden');
+
+        tabBtnLogin?.classList.remove('active');
+        tabBtnRegister?.classList.remove('active');
+
+        if (viewName === 'login') {
+            authViewLogin?.classList.remove('hidden');
+            tabBtnLogin?.classList.add('active');
+        } else if (viewName === 'register') {
+            authViewRegister?.classList.remove('hidden');
+            tabBtnRegister?.classList.add('active');
+        } else if (viewName === 'forgot') {
+            authViewForgot?.classList.remove('hidden');
+        }
+    }
+
+    if (tabBtnLogin) tabBtnLogin.addEventListener('click', () => switchAuthView('login'));
+    if (tabBtnRegister) tabBtnRegister.addEventListener('click', () => switchAuthView('register'));
+    if (btnForgotPassword) btnForgotPassword.addEventListener('click', () => switchAuthView('forgot'));
+    document.querySelectorAll('.switch-to-login').forEach(btn => {
+        btn.addEventListener('click', () => switchAuthView('login'));
+    });
+
+    // Toggle Mostrar/Ocultar Senha
+    document.querySelectorAll('.btn-toggle-password').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const targetId = btn.dataset.target;
+            const input = document.getElementById(targetId);
+            if (!input) return;
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+            const icon = btn.querySelector('i');
+            if (icon) {
+                icon.className = isPassword ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye';
+            }
+        });
+    });
+
+    // =========================================================================
+    // SESSÃO SUPABASE & SINCRONIZAÇÃO
+    // =========================================================================
+    function _setUserFromSession(user) {
+        const email = user.email || '';
+        const metadata = user.user_metadata || {};
+        const nome = metadata.full_name || metadata.name || (email ? email.split('@')[0] : 'Usuário');
+        const avatar = metadata.avatar_url || currentUser.avatar || '/static/icons/avatar.png';
+
+        currentUser.name = nome;
+        currentUser.email = email;
+        currentUser.avatar = avatar;
+        currentUser.isAuthenticated = true;
+
+        localStorage.setItem('user_name', nome);
+        localStorage.setItem('user_email', email);
+        localStorage.setItem('user_avatar', avatar);
+        localStorage.setItem('is_authenticated', 'true');
+
+        if (sidebarUserAvatar) sidebarUserAvatar.src = avatar;
+
+        const settingsName = document.getElementById('settings-user-name');
+        const settingsEmail = document.getElementById('settings-user-email');
+        const settingsAvatar = document.getElementById('settings-avatar-img');
+        if (settingsName) settingsName.textContent = nome;
+        if (settingsEmail) settingsEmail.textContent = email;
+        if (settingsAvatar) settingsAvatar.src = avatar;
+    }
+
     // Trata hash de autenticação no retorno do Supabase Google OAuth (#access_token=...)
     if (window.location.hash && window.location.hash.includes('access_token')) {
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
@@ -113,53 +276,250 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         supabaseClient.auth.getSession().then(({ data: { session } }) => {
-            if (session && session.user) _setUserFromSession(session.user);
-            atualizarEstadoAuth();
+            if (session && session.user) {
+                _setUserFromSession(session.user);
+                atualizarEstadoAuth();
+            } else if (sessionStorage.getItem('demo_mode') === 'true') {
+                concluirLoginLocal("Visitante Demo", "demo@financeiro.local");
+            } else {
+                currentUser.isAuthenticated = false;
+                atualizarEstadoAuth();
+            }
         });
     } else {
-        atualizarEstadoAuth();
+        if (sessionStorage.getItem('demo_mode') === 'true') {
+            concluirLoginLocal("Visitante Demo", "demo@financeiro.local");
+        } else {
+            currentUser.isAuthenticated = false;
+            atualizarEstadoAuth();
+        }
     }
 
-    function _setUserFromSession(user) {
-        currentUser.email  = user.email || currentUser.email;
-        currentUser.name   = user.user_metadata?.full_name || user.user_metadata?.name || user.email.split('@')[0];
-        currentUser.avatar = user.user_metadata?.avatar_url || currentUser.avatar;
-        currentUser.isAuthenticated = true;
-        localStorage.setItem('user_name', currentUser.name);
-        localStorage.setItem('user_email', currentUser.email);
-        localStorage.setItem('user_avatar', currentUser.avatar);
-        localStorage.setItem('is_authenticated', 'true');
-    }
-
+    // =========================================================================
+    // FLUXO 1: LOGIN COM GOOGLE
+    // =========================================================================
     if (btnGoogleLogin) {
         btnGoogleLogin.addEventListener('click', async () => {
-            mostrarToast('Redirecionando para o Google...', 'info');
+            esconderAlerta();
+            setBtnLoading(btnGoogleLogin, googleSpinner, true);
+            mostrarToast('Conectando ao Google...', 'info');
+
             const currentOrigin = window.location.origin;
-            const targetRedirect = currentOrigin.includes('localhost') || currentOrigin.includes('127.0.0.1')
-                ? 'https://gerenciadorfinanceiro.onrender.com/'
-                : currentOrigin + window.location.pathname;
+            const targetRedirect = currentOrigin + window.location.pathname;
+
             if (supabaseClient) {
                 try {
                     const { error } = await supabaseClient.auth.signInWithOAuth({
                         provider: 'google',
                         options: { redirectTo: targetRedirect }
                     });
-                    if (error) mostrarToast('Erro: ' + error.message, 'error');
-                } catch {
-                    concluirLoginLocal("Leonir Kuyava", "kuyavaleonir@gmail.com");
+                    if (error) {
+                        setBtnLoading(btnGoogleLogin, googleSpinner, false);
+                        mostrarAlerta(traduzirErroSupabase(error.message), 'error');
+                        mostrarToast('Erro no Google: ' + error.message, 'error');
+                    }
+                } catch (err) {
+                    setBtnLoading(btnGoogleLogin, googleSpinner, false);
+                    mostrarAlerta('Falha ao conectar com o serviço Google.', 'error');
                 }
             } else {
+                setBtnLoading(btnGoogleLogin, googleSpinner, false);
                 concluirLoginLocal("Leonir Kuyava", "kuyavaleonir@gmail.com");
             }
         });
     }
 
+    // =========================================================================
+    // FLUXO 2: LOGIN COM E-MAIL E SENHA (REAL SUPABASE)
+    // =========================================================================
     if (formLogin) {
-        formLogin.addEventListener('submit', (e) => {
+        formLogin.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = document.getElementById('login-email').value;
-            const nome  = email.split('@')[0];
-            concluirLoginLocal(nome, email);
+            esconderAlerta();
+
+            const email = inputLoginEmail?.value.trim();
+            const password = inputLoginPass?.value;
+
+            if (!email || !password) {
+                mostrarAlerta('Por favor, informe seu e-mail e senha.', 'error');
+                return;
+            }
+
+            setBtnLoading(btnSubmitLogin, loginSpinner, true);
+
+            if (supabaseClient) {
+                try {
+                    const { data, error } = await supabaseClient.auth.signInWithPassword({
+                        email: email,
+                        password: password
+                    });
+
+                    if (error) {
+                        setBtnLoading(btnSubmitLogin, loginSpinner, false);
+                        const msg = traduzirErroSupabase(error.message);
+                        mostrarAlerta(msg, 'error');
+                        mostrarToast(msg, 'error');
+                        return;
+                    }
+
+                    if (data && data.session && data.session.user) {
+                        // Trata opção "Lembrar de mim"
+                        if (checkRemember && checkRemember.checked) {
+                            localStorage.setItem('saved_login_email', email);
+                        } else {
+                            localStorage.removeItem('saved_login_email');
+                        }
+
+                        _setUserFromSession(data.session.user);
+                        formLogin.reset();
+                        mostrarToast(`Bem-vindo(a) de volta, ${currentUser.name}! 🎉`, 'success');
+                        atualizarEstadoAuth();
+                    } else {
+                        setBtnLoading(btnSubmitLogin, loginSpinner, false);
+                        mostrarAlerta('Não foi possível iniciar a sessão.', 'error');
+                    }
+                } catch (err) {
+                    setBtnLoading(btnSubmitLogin, loginSpinner, false);
+                    mostrarAlerta('Erro de conexão ao autenticar.', 'error');
+                }
+            } else {
+                // Fallback caso Supabase não esteja disponível
+                setBtnLoading(btnSubmitLogin, loginSpinner, false);
+                const nome = email.split('@')[0];
+                concluirLoginLocal(nome, email);
+            }
+        });
+    }
+
+    // =========================================================================
+    // FLUXO 3: CADASTRO DE NOVA CONTA (SIGN UP)
+    // =========================================================================
+    if (formRegister) {
+        formRegister.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            esconderAlerta();
+
+            const nome = inputRegName?.value.trim();
+            const email = inputRegEmail?.value.trim();
+            const password = inputRegPass?.value;
+            const confirmPass = inputRegConfirm?.value;
+
+            if (!nome || !email || !password) {
+                mostrarAlerta('Todos os campos são obrigatórios.', 'error');
+                return;
+            }
+
+            if (password.length < 6) {
+                mostrarAlerta('A senha deve ter no mínimo 6 caracteres.', 'error');
+                return;
+            }
+
+            if (password !== confirmPass) {
+                mostrarAlerta('As senhas não conferem. Por favor, digite senhas iguais.', 'error');
+                return;
+            }
+
+            setBtnLoading(btnSubmitRegister, registerSpinner, true);
+
+            if (supabaseClient) {
+                try {
+                    const { data, error } = await supabaseClient.auth.signUp({
+                        email: email,
+                        password: password,
+                        options: {
+                            data: {
+                                full_name: nome,
+                                name: nome
+                            }
+                        }
+                    });
+
+                    setBtnLoading(btnSubmitRegister, registerSpinner, false);
+
+                    if (error) {
+                        const msg = traduzirErroSupabase(error.message);
+                        mostrarAlerta(msg, 'error');
+                        mostrarToast(msg, 'error');
+                        return;
+                    }
+
+                    if (data && data.session && data.session.user) {
+                        // Usuário logado diretamente (confirmação automática)
+                        _setUserFromSession(data.session.user);
+                        formRegister.reset();
+                        mostrarToast(`Conta criada com sucesso! Bem-vindo(a), ${nome}! 🎉`, 'success');
+                        atualizarEstadoAuth();
+                    } else if (data && data.user) {
+                        // E-mail de confirmação enviado
+                        formRegister.reset();
+                        switchAuthView('login');
+                        if (inputLoginEmail) inputLoginEmail.value = email;
+                        mostrarAlerta(`Conta criada com sucesso! Enviamos um link de confirmação para ${email}. Verifique seu e-mail para ativar sua conta.`, 'success');
+                        mostrarToast('Conta cadastrada! Verifique seu e-mail para confirmar.', 'info');
+                    }
+                } catch (err) {
+                    setBtnLoading(btnSubmitRegister, registerSpinner, false);
+                    mostrarAlerta('Erro de conexão ao criar a conta.', 'error');
+                }
+            } else {
+                setBtnLoading(btnSubmitRegister, registerSpinner, false);
+                concluirLoginLocal(nome, email);
+            }
+        });
+    }
+
+    // =========================================================================
+    // FLUXO 4: RECUPERAÇÃO DE SENHA (FORGOT PASSWORD)
+    // =========================================================================
+    if (formForgot) {
+        formForgot.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            esconderAlerta();
+
+            const email = inputForgotEmail?.value.trim();
+            if (!email) {
+                mostrarAlerta('Informe seu e-mail cadastrado.', 'error');
+                return;
+            }
+
+            setBtnLoading(btnSubmitForgot, forgotSpinner, true);
+
+            if (supabaseClient) {
+                try {
+                    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+                        redirectTo: window.location.origin + window.location.pathname
+                    });
+
+                    setBtnLoading(btnSubmitForgot, forgotSpinner, false);
+
+                    if (error) {
+                        const msg = traduzirErroSupabase(error.message);
+                        mostrarAlerta(msg, 'error');
+                        return;
+                    }
+
+                    mostrarAlerta(`Link de recuperação enviado com sucesso para ${email}! Verifique sua caixa de entrada e spam.`, 'success');
+                    mostrarToast('Link de recuperação enviado!', 'success');
+                    formForgot.reset();
+                } catch (err) {
+                    setBtnLoading(btnSubmitForgot, forgotSpinner, false);
+                    mostrarAlerta('Erro de conexão ao solicitar recuperação de senha.', 'error');
+                }
+            } else {
+                setBtnLoading(btnSubmitForgot, forgotSpinner, false);
+                mostrarAlerta(`Link de demonstração enviado para ${email}.`, 'info');
+            }
+        });
+    }
+
+    // =========================================================================
+    // FLUXO 5: MODO DEMONSTRAÇÃO / VISITANTE (LOCAL)
+    // =========================================================================
+    if (btnDemoLogin) {
+        btnDemoLogin.addEventListener('click', () => {
+            sessionStorage.setItem('demo_mode', 'true');
+            concluirLoginLocal("Visitante Demo", "demo@financeiro.local");
+            mostrarToast('Acessando como Visitante (Modo Demonstração) ✨', 'info');
         });
     }
 
@@ -171,27 +531,60 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('user_email', email);
         localStorage.setItem('user_avatar', currentUser.avatar);
         localStorage.setItem('is_authenticated', 'true');
-        mostrarToast(`Bem-vindo, ${nome}! 🎉`, 'success');
         atualizarEstadoAuth();
     }
 
+    // =========================================================================
+    // FLUXO 6: LOGOUT SEGURO
+    // =========================================================================
     if (btnUserLogout) {
         btnUserLogout.addEventListener('click', async () => {
-            if (confirm('Deseja realmente encerrar a sessão?')) {
+            modalSettings?.classList.add('hidden');
+            try {
                 if (supabaseClient) await supabaseClient.auth.signOut();
-                currentUser.isAuthenticated = false;
-                ['is_authenticated','user_name','user_email'].forEach(k => localStorage.removeItem(k));
-                mostrarToast('Sessão encerrada.', 'info');
-                atualizarEstadoAuth();
+            } catch (e) {
+                console.warn('Erro ao deslogar do Supabase:', e);
             }
+
+            currentUser.isAuthenticated = false;
+            sessionStorage.removeItem('demo_mode');
+            ['is_authenticated', 'user_name', 'user_email', 'user_avatar'].forEach(k => localStorage.removeItem(k));
+
+            // Restaura estado limpo da tela de login
+            formLogin?.reset();
+            formRegister?.reset();
+            formForgot?.reset();
+            esconderAlerta();
+            switchAuthView('login');
+
+            // Recarrega email lembrado se houver
+            const remembered = localStorage.getItem('saved_login_email');
+            if (remembered && inputLoginEmail) {
+                inputLoginEmail.value = remembered;
+                if (checkRemember) checkRemember.checked = true;
+            }
+
+            mostrarToast('Sessão encerrada com sucesso.', 'info');
+            atualizarEstadoAuth();
         });
     }
 
+    // =========================================================================
+    // ATUALIZAÇÃO DO ESTADO VISUAL DE AUTENTICAÇÃO
+    // =========================================================================
     function atualizarEstadoAuth() {
         if (currentUser.isAuthenticated) {
             authScreen?.classList.add('hidden');
             mainLayout?.classList.remove('hidden');
             if (sidebarUserAvatar) sidebarUserAvatar.src = currentUser.avatar;
+
+            const settingsName = document.getElementById('settings-user-name');
+            const settingsEmail = document.getElementById('settings-user-email');
+            const settingsAvatar = document.getElementById('settings-avatar-img');
+            if (settingsName) settingsName.textContent = currentUser.name || 'Usuário';
+            if (settingsEmail) settingsEmail.textContent = currentUser.email || '';
+            if (settingsAvatar) settingsAvatar.src = currentUser.avatar;
+
             carregarDados();
             renderizarAcoes();
             renderizarCripto();

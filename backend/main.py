@@ -68,6 +68,12 @@ def listar_transacoes(
     """Retorna uma lista das transações mais recentes cadastradas."""
     return database.listar_transacoes(tipo=tipo, categoria=categoria, limite=limite)
 
+@app.get("/api/atividade-mensal", summary="Atividade financeira por mês")
+def atividade_mensal():
+    """Retorna totais de receitas e despesas agrupados por mês (últimos 12 meses)."""
+    return database.obter_atividade_mensal()
+
+
 @app.get("/api/saldo", response_model=SaldoResposta, summary="Consultar saldo e totais acumulados")
 def consultar_saldo():
     """Retorna o total de receitas, total de despesas e o saldo líquido atual."""

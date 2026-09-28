@@ -181,3 +181,49 @@ def excluir_transacao(transacao_id: int) -> bool:
     conn.commit()
     conn.close()
     return True
+
+def obter_atividade_mensal() -> List[Dict[str, Any]]:
+    """Retorna totais de receitas e despesas por mês nos últimos 12 meses."""
+    client = get_supabase_client()
+    
+    meses_labels = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"]
+    resultado = []
+
+    if client:
+        res = client.table("transacoes").select("tipo,valor,data").execute()
+        dados = res.data or []
+    else:
+        conn = get_sqlite_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT tipo, valor, data FROM transacoes ORDER BY data")
+        dados = [dict(r) for r in cursor.fetchall()]
+        conn.close()
+
+    # Agrupa por ano-mês
+    from collections import defaultdict
+    agrupado = defaultdict(lambda: {"receita": 0.0, "despesa": 0.0})
+    for item in dados:
+        try:
+            parts = str(item.get("data", "")).split("-")
+            if len(parts) >= 2:
+                chave = f"{parts[0]}-{parts[1].zfill(2)}"
+                agrupado[chave][item["tipo"]] += float(item.get("valor", 0))
+        except Exception:
+            pass
+
+    # Últimos 12 meses
+    from datetime import date
+    hoje = date.today()
+    for i in range(11, -1, -1):
+        mes = hoje.month - i
+        ano = hoje.year
+        while mes <= 0:
+            mes += 12
+            ano -= 1
+        chave = f"{ano}-{str(mes).zfill(2)}"
+        label = meses_labels[mes - 1]
+        rec  = round(agrupado[chave]["receita"], 2)
+        desp = round(agrupado[chave]["despesa"], 2)
+        resultado.append({"mes": label, "ano_mes": chave, "receita": rec, "despesa": desp})
+
+    return resultado

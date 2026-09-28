@@ -3,26 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Controle Financeiro - PrimeVue & Ant Design Edition</title>
+    <title>Controle Financeiro Pro - Portfolio Command Dashboard</title>
     
     <!-- PWA & Mobile Meta Tags -->
-    <meta name="theme-color" content="#0f172a">
+    <meta name="theme-color" content="#070a11">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Finanças">
+    <meta name="apple-mobile-web-app-title" content="Finanças Pro">
     <link rel="manifest" href="/static/manifest.json">
     <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
 
-    <!-- Fonts & Icons -->
+    <!-- Fonts, Icons & Chart.js -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- PrimeIcons & Ant Design Vue Styles -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/primeicons@7.0.0/primeicons.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ant-design-vue@4.2.5/dist/reset.css">
 
-    <!-- Supabase JS Client -->
+    <!-- Supabase & Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
@@ -33,18 +33,17 @@
         <div class="glow-orb orb-3"></div>
     </div>
 
-    <!-- TELA DE LOGIN & AUTENTICAÇÃO (Google OAuth / Supabase Auth) -->
+    <!-- TELA DE LOGIN & AUTENTICAÇÃO -->
     <div id="auth-screen" class="auth-container">
         <div class="auth-card ant-card">
             <div class="auth-header">
                 <div class="auth-logo">
-                    <i class="fa-solid fa-wallet"></i>
+                    <i class="fa-solid fa-chart-line"></i>
                 </div>
-                <h2>Controle Financeiro</h2>
-                <p>Acesse sua conta para gerenciar suas finanças</p>
+                <h2>FINANÇAS PRO</h2>
+                <p>Plataforma Inteligente de Gestão Financeira</p>
             </div>
 
-            <!-- Login com Google / E-mail -->
             <div id="auth-step-login" class="auth-step active">
                 <button id="btn-google-login" class="btn btn-google btn-block">
                     <svg class="google-icon" viewBox="0 0 24 24">
@@ -56,121 +55,117 @@
                     <span>Continuar com o Google</span>
                 </button>
 
-                <div class="divider"><span>ou com e-mail</span></div>
+                <div class="divider"><span>ou acesse com e-mail</span></div>
 
                 <form id="form-login">
                     <div class="form-group">
                         <label for="login-email">E-mail</label>
-                        <input type="email" id="login-email" placeholder="seu.email@exemplo.com" required value="leonir.kuyava@gmail.com">
+                        <input type="email" id="login-email" placeholder="seu.email@exemplo.com" required value="kuyavaleonir@gmail.com">
                     </div>
                     <div class="form-group">
                         <label for="login-password">Senha</label>
                         <input type="password" id="login-password" placeholder="••••••••" required value="123456">
                     </div>
                     <button type="submit" class="btn btn-primary btn-block">
-                        Entrar na Conta <i class="fa-solid fa-arrow-right"></i>
+                        Entrar na Plataforma <i class="fa-solid fa-arrow-right"></i>
                     </button>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- LAYOUT PRINCIPAL DO SISTEMA (Sidebar + Main Content) -->
+    <!-- LAYOUT PRINCIPAL DO SISTEMA -->
     <div id="main-layout" class="layout-wrapper hidden">
-        <!-- BARRA LATERAL ESQUERDA (PrimeVue / Ant Design Sidebar) -->
-        <aside class="sidebar-left" id="sidebar">
-            <div class="sidebar-header">
-                <div class="brand">
-                    <div class="logo-icon">
-                        <i class="fa-solid fa-wallet"></i>
-                    </div>
-                    <div class="brand-text">
-                        <h2>Finanças</h2>
-                        <span class="badge-db" id="db-indicator">
-                            <span class="dot"></span> <span id="db-status-text">Supabase</span>
-                        </span>
+        <!-- BARRA LATERAL SLIM COM ÍCONES -->
+        <aside class="sidebar-slim" id="sidebar">
+            <div class="sidebar-top">
+                <div class="brand-logo" title="Finanças Pro">
+                    <div class="brand-icon-box">
+                        <i class="fa-solid fa-cube"></i>
                     </div>
                 </div>
-                <button class="btn-sidebar-toggle" id="btn-toggle-sidebar" title="Recolher Menu">
-                    <i class="fa-solid fa-chevron-left"></i>
-                </button>
+
+                <nav class="slim-nav">
+                    <ul>
+                        <li class="slim-nav-item active" data-page="page-dashboard" title="Dashboard">
+                            <a href="#dashboard">
+                                <div class="icon-square">
+                                    <i class="fa-solid fa-house"></i>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="slim-nav-item" data-page="page-transacoes" title="Extrato & Transações">
+                            <a href="#transacoes">
+                                <div class="icon-square">
+                                    <i class="fa-solid fa-receipt"></i>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="slim-nav-item" data-page="page-acoes" title="Carteira de Ações">
+                            <a href="#acoes">
+                                <div class="icon-square">
+                                    <i class="fa-solid fa-chart-line"></i>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="slim-nav-item" data-page="page-cripto" title="Criptomoedas">
+                            <a href="#criptomoedas">
+                                <div class="icon-square">
+                                    <i class="fa-solid fa-coins"></i>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="slim-nav-item" data-page="page-metas" title="Metas Financeiras">
+                            <a href="#metas">
+                                <div class="icon-square">
+                                    <i class="fa-solid fa-bullseye"></i>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="slim-nav-item" data-page="page-relatorios" title="Relatórios & Analytics">
+                            <a href="#relatorios">
+                                <div class="icon-square">
+                                    <i class="fa-solid fa-chart-pie"></i>
+                                </div>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
             </div>
 
-            <!-- Menu de Ferramentas / Navegação -->
-            <nav class="sidebar-nav">
-                <div class="nav-section-title">MENU PRINCIPAL</div>
-                <ul>
-                    <li class="nav-item active" data-target="page-dashboard">
-                        <a href="#dashboard">
-                            <i class="fa-solid fa-chart-pie"></i>
-                            <span>Visão Geral</span>
-                        </a>
-                    </li>
-                    <li class="nav-item" data-target="page-transacoes">
-                        <a href="#transacoes">
-                            <i class="fa-solid fa-list-check"></i>
-                            <span>Extrato & Transações</span>
-                        </a>
-                    </li>
-                    <li class="nav-item" data-target="page-relatorios">
-                        <a href="#relatorios">
-                            <i class="fa-solid fa-chart-line"></i>
-                            <span>Relatórios & Métricas</span>
-                        </a>
-                    </li>
-                </ul>
-
-                <div class="nav-section-title">CONFIGURAÇÕES</div>
-                <ul>
-                    <li class="nav-item" id="nav-btn-settings">
-                        <a href="#configuracoes">
-                            <i class="fa-solid fa-sliders"></i>
-                            <span>Preferências</span>
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-
-            <!-- RODAPÉ DA BARRA LATERAL (PARTE INFERIOR ESQUERDA) -->
-            <div class="sidebar-user-footer">
-                <div class="user-profile-card">
-                    <div class="avatar-wrapper">
-                        <img id="sidebar-user-avatar" src="/static/icons/avatar.png" alt="Perfil">
-                        <span class="status-indicator online" title="Sessão Ativa"></span>
-                    </div>
-                    <div class="user-info">
-                        <span class="user-name" id="sidebar-user-name">Leonir Kuyava</span>
-                        <span class="user-email" id="sidebar-user-email">leonir.kuyava@gmail.com</span>
-                    </div>
-                </div>
-                <div class="user-actions">
-                    <button class="btn-action-icon" id="btn-open-settings" title="Configurações do Perfil">
-                        <i class="fa-solid fa-gear"></i>
-                    </button>
-                    <button class="btn-action-icon logout" id="btn-user-logout" title="Sair / Logoff">
-                        <i class="fa-solid fa-right-from-bracket"></i>
-                    </button>
+            <!-- Rodapé Slim Sidebar -->
+            <div class="sidebar-bottom">
+                <button class="slim-btn-icon" id="btn-open-settings" title="Configurações">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+                <div class="slim-user-avatar" id="btn-avatar-menu" title="Perfil / Sair">
+                    <img id="sidebar-user-avatar" src="/static/icons/avatar.png" alt="Perfil">
                 </div>
             </div>
         </aside>
 
         <!-- CONTEÚDO PRINCIPAL (Main Workspace) -->
         <div class="main-workspace">
-            <header class="top-navbar">
-                <div class="navbar-left">
-                    <button class="btn-icon mobile-only" id="btn-mobile-menu">
-                        <i class="fa-solid fa-bars"></i>
-                    </button>
-                    <h3 id="current-page-title">Dashboard Financeiro</h3>
-                </div>
-                
-                <div class="navbar-right">
-                    <div class="security-badge" title="Autenticado via Google OAuth">
-                        <i class="fa-brands fa-google text-success"></i>
-                        <span>Google Auth Ativo</span>
+            
+            <!-- HEADER DA APLICAÇÃO (Portfolio Command Header) -->
+            <header class="portfolio-header">
+                <div class="header-titles">
+                    <div class="breadcrumb-line">
+                        <span class="sub-text">Overview</span>
+                        <span class="live-status-dot">● Live</span>
                     </div>
-                    <button class="btn btn-secondary" id="btn-refresh" title="Atualizar dados">
-                        <i class="fa-solid fa-rotate-right"></i>
+                    <h1 class="main-page-title" id="current-page-title">Portfolio command</h1>
+                    <p class="sub-description">Monitor wallet exposure, settlement flow, and recent financial activity.</p>
+                </div>
+
+                <div class="header-actions">
+                    <div class="search-assets-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="global-search-input" placeholder="Search assets or entries...">
+                    </div>
+                    <button class="header-icon-btn" id="btn-notifications" title="Notificações">
+                        <i class="fa-regular fa-bell"></i>
+                        <span class="notification-badge"></span>
                     </button>
                     <button class="btn btn-primary" id="btn-open-modal">
                         <i class="fa-solid fa-plus"></i> Nova Transação
@@ -179,84 +174,228 @@
             </header>
 
             <div class="workspace-content">
-                <!-- PÁGINA 1: DASHBOARD -->
+                
+                <!-- PÁGINA 1: DASHBOARD CENTRALIZADO ESTILO PORTFOLIO COMMAND -->
                 <div id="page-dashboard" class="page-view active">
-                    <!-- Cards KPIs (PrimeVue / Antd Style) -->
-                    <section class="kpi-grid">
-                        <div class="kpi-card card-saldo">
-                            <div class="card-header">
-                                <span>Saldo Atual</span>
-                                <div class="card-icon"><i class="fa-solid fa-scale-balanced"></i></div>
-                            </div>
-                            <div class="card-amount" id="val-saldo-atual">R$ 0,00</div>
-                            <div class="card-footer" id="saldo-status-text">
-                                <i class="fa-solid fa-chart-line"></i> Resumo acumulado
-                            </div>
+                    
+                    <!-- BARRA DE FILTROS TEMPORAIS E ATALHOS -->
+                    <div class="dashboard-filter-bar">
+                        <div class="time-filter-pills">
+                            <button class="pill-btn" data-timeframe="dia">Diário</button>
+                            <button class="pill-btn" data-timeframe="semana">Semanal</button>
+                            <button class="pill-btn active" data-timeframe="mes">Mensal</button>
+                            <button class="pill-btn" data-timeframe="ano">Anual</button>
                         </div>
 
-                        <div class="kpi-card card-receitas">
-                            <div class="card-header">
-                                <span>Total Receitas</span>
-                                <div class="card-icon icon-receita"><i class="fa-solid fa-arrow-trend-up"></i></div>
-                            </div>
-                            <div class="card-amount text-success" id="val-total-receitas">R$ 0,00</div>
-                            <div class="card-footer">
-                                <span class="dot green"></span> Entradas acumuladas
-                            </div>
-                        </div>
-
-                        <div class="kpi-card card-despesas">
-                            <div class="card-header">
-                                <span>Total Despesas</span>
-                                <div class="card-icon icon-despesa"><i class="fa-solid fa-arrow-trend-down"></i></div>
-                            </div>
-                            <div class="card-amount text-danger" id="val-total-despesas">R$ 0,00</div>
-                            <div class="card-footer">
-                                <span class="dot red"></span> Saídas acumuladas
+                        <div class="filter-actions-right">
+                            <button class="btn-dashboard-action" id="btn-download-report">
+                                <i class="fa-solid fa-download"></i>
+                                <span>Download</span>
+                            </button>
+                            <div class="date-picker-badge" id="btn-date-picker">
+                                <span id="current-date-range">01/01/2026 - 31/12/2026</span>
+                                <i class="fa-regular fa-calendar"></i>
                             </div>
                         </div>
+                    </div>
 
-                        <div class="kpi-card card-stats">
-                            <div class="card-header">
-                                <span>Total Registros</span>
-                                <div class="card-icon icon-stats"><i class="fa-solid fa-receipt"></i></div>
+                    <!-- WIDGET 1: CARDS KPI SUPERIORES (4 CARDS) -->
+                    <section class="widget-section" id="widget-kpi">
+                        <div class="kpi-grid">
+                            
+                            <!-- Card 1: Saldo Total -->
+                            <div class="kpi-card card-balance">
+                                <div class="kpi-card-top">
+                                    <span class="kpi-label">Total balance</span>
+                                    <div class="kpi-icon-box">
+                                        <i class="fa-solid fa-wallet"></i>
+                                    </div>
+                                </div>
+                                <div class="kpi-value" id="val-saldo-atual">R$ 0,00</div>
+                                <div class="kpi-badge-row">
+                                    <span class="kpi-badge green" id="badge-balance-pct">+12.4%</span>
+                                </div>
                             </div>
-                            <div class="card-amount" id="val-qtd-transacoes">0</div>
-                            <div class="card-footer">
-                                Transações cadastradas
+
+                            <!-- Card 2: Fluxo Líquido / Entradas -->
+                            <div class="kpi-card card-flow">
+                                <div class="kpi-card-top">
+                                    <span class="kpi-label">Net flow (Entradas)</span>
+                                    <div class="kpi-icon-box icon-flow">
+                                        <i class="fa-solid fa-arrow-up-right-dots"></i>
+                                    </div>
+                                </div>
+                                <div class="kpi-value green-txt" id="val-total-receitas">R$ 0,00</div>
+                                <div class="kpi-badge-row">
+                                    <span class="kpi-badge green" id="badge-flow-pct">+8.2%</span>
+                                </div>
+                            </div>
+
+                            <!-- Card 3: Lançamentos -->
+                            <div class="kpi-card card-orders">
+                                <div class="kpi-card-top">
+                                    <span class="kpi-label">Total de Lançamentos</span>
+                                    <div class="kpi-icon-box icon-orders">
+                                        <i class="fa-solid fa-bolt"></i>
+                                    </div>
+                                </div>
+                                <div class="kpi-value" id="val-qtd-transacoes">0</div>
+                                <div class="kpi-badge-row">
+                                    <span class="kpi-badge blue">Live</span>
+                                </div>
+                            </div>
+
+                            <!-- Card 4: Saídas (Despesas) -->
+                            <div class="kpi-card card-risk">
+                                <div class="kpi-card-top">
+                                    <span class="kpi-label">Total de Saídas</span>
+                                    <div class="kpi-icon-box icon-risk">
+                                        <i class="fa-solid fa-shield-halved"></i>
+                                    </div>
+                                </div>
+                                <div class="kpi-value red-txt" id="val-total-despesas">R$ 0,00</div>
+                                <div class="kpi-badge-row">
+                                    <span class="kpi-badge red" id="badge-risk-text">Saídas</span>
+                                </div>
+                            </div>
+
+                        </div>
+                    </section>
+
+                    <!-- WIDGET 2: GRÁFICO CENTRALIZADO (Portfolio Activity - Entradas e Saídas Verde/Vermelho) -->
+                    <section class="widget-section" id="widget-chart-section">
+                        <div class="ant-card chart-card">
+                            <div class="chart-card-header">
+                                <div class="chart-title-area">
+                                    <h3>Portfolio activity</h3>
+                                    <small id="chart-sub-period">Visualização gráfica de fluxo de caixa</small>
+                                </div>
+                                <div class="chart-legend-area">
+                                    <span class="legend-item"><span class="legend-dot green"></span> Entradas (Receitas)</span>
+                                    <span class="legend-item"><span class="legend-dot red"></span> Saídas (Despesas)</span>
+                                    <span class="legend-item"><span class="legend-dot balance"></span> Saldo Líquido</span>
+                                </div>
+                            </div>
+
+                            <div class="chart-canvas-wrapper">
+                                <canvas id="portfolioChart"></canvas>
                             </div>
                         </div>
                     </section>
 
-                    <!-- Barra Visual Proporcional -->
-                    <section class="ratio-section ant-card">
-                        <div class="ratio-header">
-                            <span><i class="fa-solid fa-chart-simple"></i> Distribuição Financeira</span>
-                            <span id="ratio-percent">0% despendido</span>
-                        </div>
-                        <div class="ratio-bar-container">
-                            <div class="ratio-bar-fill green" id="bar-receita" style="width: 50%;"></div>
-                            <div class="ratio-bar-fill red" id="bar-despesa" style="width: 50%;"></div>
-                        </div>
-                    </section>
+                    <!-- WIDGET 3 & 4: SEÇÃO INFERIOR DIVIDIDA EM 2 COLUNAS (Recent Activity + Wallet Mix) -->
+                    <div class="dashboard-bottom-split">
+                        
+                        <!-- Coluna Esquerda: Recent Activity (Extrato Recente) -->
+                        <div class="split-column-left">
+                            <div class="ant-card recent-activity-card">
+                                <div class="recent-activity-header">
+                                    <div class="recent-title-row">
+                                        <h3>Recent activity</h3>
+                                        <span class="badge-pending" id="badge-pending-count">10 pendentes</span>
+                                    </div>
+                                    <button class="btn-more-options" id="btn-custom-dash-opt" title="Opções">
+                                        <i class="fa-solid fa-ellipsis"></i>
+                                    </button>
+                                </div>
 
-                    <!-- Tabela de Transações Recentes -->
-                    <section class="main-content ant-card">
+                                <div class="table-container">
+                                    <table class="recent-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Id</th>
+                                                <th>Descrição</th>
+                                                <th>Categoria</th>
+                                                <th>Data</th>
+                                                <th>Tipo</th>
+                                                <th class="text-right">Valor</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="transaction-list">
+                                            <!-- Preenchido via app.js -->
+                                        </tbody>
+                                    </table>
+
+                                    <div class="empty-state hidden" id="empty-state">
+                                        <div class="empty-icon"><i class="fa-solid fa-folder-open"></i></div>
+                                        <p>Nenhuma transação encontrada no período.</p>
+                                        <button class="btn btn-secondary btn-sm" id="btn-empty-add">+ Adicionar Transação</button>
+                                    </div>
+                                </div>
+
+                                <!-- Paginação Estilo Imagem -->
+                                <div class="pagination-footer">
+                                    <div class="pagination-controls">
+                                        <button class="page-nav-btn" id="btn-page-prev"><i class="fa-solid fa-chevron-left"></i></button>
+                                        <div class="page-numbers" id="page-numbers">
+                                            <button class="page-num active">1</button>
+                                            <button class="page-num">2</button>
+                                            <button class="page-num">3</button>
+                                            <button class="page-num">4</button>
+                                            <button class="page-num">5</button>
+                                        </div>
+                                        <button class="page-nav-btn" id="btn-page-next"><i class="fa-solid fa-chevron-right"></i></button>
+                                    </div>
+                                    <div class="pagination-text" id="pagination-info">
+                                        Showing 1 to 5 of 20 entries
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <!-- Coluna Direita: Wallet Mix (Composição de Gastos/Entradas) -->
+                        <div class="split-column-right">
+                            <div class="ant-card wallet-mix-card">
+                                <div class="wallet-mix-header">
+                                    <h3>Wallet mix</h3>
+                                    <button class="btn-more-options"><i class="fa-solid fa-ellipsis"></i></button>
+                                </div>
+
+                                <div class="wallet-mix-balance">
+                                    <span class="mix-balance-amount" id="mix-total-val">R$ 0,00</span>
+                                    <span class="kpi-badge green" id="mix-badge-pct">+12.4%</span>
+                                </div>
+
+                                <!-- Barra Multi-segmentada -->
+                                <div class="multi-progress-bar" id="mix-progress-bar">
+                                    <div class="segment seg-1" style="width: 45%; background: #10b981;"></div>
+                                    <div class="segment seg-2" style="width: 30%; background: #06b6d4;"></div>
+                                    <div class="segment seg-3" style="width: 25%; background: #f59e0b;"></div>
+                                </div>
+
+                                <!-- Lista de Categorias com porcentagem -->
+                                <div class="category-breakdown-list" id="category-breakdown-list">
+                                    <!-- Preenchido via app.js -->
+                                </div>
+
+                                <div class="wallet-mix-footer">
+                                    <button class="btn-view-ledger" id="btn-view-ledger">
+                                        View ledger <i class="fa-solid fa-arrow-right"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- PÁGINA 2: EXTRATO & TRANSAÇÕES COMPLETO -->
+                <div id="page-transacoes" class="page-view hidden">
+                    <div class="ant-card main-content">
                         <div class="content-header">
-                            <h2><i class="fa-solid fa-list-check"></i> Extrato Recente</h2>
-                            <div class="filter-toolbar">
+                            <h2><i class="fa-solid fa-receipt"></i> Extrato Financeiro Completo</h2>
+                            <div class="content-header-actions">
                                 <div class="search-box">
                                     <i class="fa-solid fa-magnifying-glass"></i>
-                                    <input type="text" id="search-input" placeholder="Buscar por descrição ou categoria...">
+                                    <input type="text" id="search-input" placeholder="Buscar descrição ou categoria...">
                                 </div>
-                                <div class="filter-tabs">
-                                    <button class="tab-btn active" data-type="todos">Todos</button>
-                                    <button class="tab-btn" data-type="receita"><i class="fa-solid fa-circle-arrow-up green-txt"></i> Receitas</button>
-                                    <button class="tab-btn" data-type="despesa"><i class="fa-solid fa-circle-arrow-down red-txt"></i> Despesas</button>
-                                </div>
+                                <button class="btn btn-primary" id="btn-open-modal-page-extrato">
+                                    <i class="fa-solid fa-plus"></i> Novo Lançamento
+                                </button>
                             </div>
                         </div>
-
                         <div class="table-container">
                             <table class="transaction-table">
                                 <thead>
@@ -269,18 +408,171 @@
                                         <th class="text-right">Ação</th>
                                     </tr>
                                 </thead>
-                                <tbody id="transaction-list">
+                                <tbody id="transaction-list-full">
                                     <!-- Dinâmico -->
                                 </tbody>
                             </table>
-                            <div class="empty-state hidden" id="empty-state">
-                                <div class="empty-icon"><i class="fa-solid fa-folder-open"></i></div>
-                                <p>Nenhuma transação encontrada.</p>
-                                <button class="btn btn-secondary btn-sm" id="btn-empty-add">+ Adicionar Transação</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PÁGINA 3: CARTEIRA DE AÇÕES -->
+                <div id="page-acoes" class="page-view hidden">
+                    <div class="ant-card main-content">
+                        <div class="content-header">
+                            <h2><i class="fa-solid fa-chart-line text-success"></i> Carteira de Ações & FIIs</h2>
+                            <button class="btn btn-primary" id="btn-modal-stock-page">+ Comprar / Adicionar Ação</button>
+                        </div>
+                        <div class="table-container">
+                            <table class="transaction-table">
+                                <thead>
+                                    <tr>
+                                        <th>Ativo</th>
+                                        <th>Empresa / Fundo</th>
+                                        <th>Quantidade</th>
+                                        <th>Preço Médio</th>
+                                        <th>Preço Atual</th>
+                                        <th>Lucro / Prejuízo</th>
+                                        <th class="text-right">Ação</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="stocks-table-body">
+                                    <!-- Dinâmico -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PÁGINA 4: CRIPTOMOEDAS -->
+                <div id="page-cripto" class="page-view hidden">
+                    <div class="ant-card main-content">
+                        <div class="content-header">
+                            <h2><i class="fa-solid fa-coins text-warning"></i> Carteira de Criptomoedas</h2>
+                            <button class="btn btn-primary" id="btn-modal-crypto-page">+ Adicionar Cripto</button>
+                        </div>
+                        <div class="table-container">
+                            <table class="transaction-table">
+                                <thead>
+                                    <tr>
+                                        <th>Criptomoeda</th>
+                                        <th>Símbolo</th>
+                                        <th>Quantidade</th>
+                                        <th>Valor em R$</th>
+                                        <th>Variação 24h</th>
+                                        <th class="text-right">Ação</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="crypto-table-body">
+                                    <!-- Dinâmico -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PÁGINA 5: METAS FINANCEIRAS -->
+                <div id="page-metas" class="page-view hidden">
+                    <div class="ant-card main-content">
+                        <div class="content-header">
+                            <h2><i class="fa-solid fa-bullseye text-primary"></i> Minhas Metas Financeiras</h2>
+                            <button class="btn btn-primary" id="btn-modal-goal-page">+ Nova Meta</button>
+                        </div>
+                        <div class="goals-grid-full" id="goals-full-list">
+                            <!-- Dinâmico -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PÁGINA 6: RELATÓRIOS & ANALYTICS -->
+                <div id="page-relatorios" class="page-view hidden">
+                    <div class="reports-page-grid">
+
+                        <!-- Resumo Geral -->
+                        <div class="ant-card main-content">
+                            <div class="content-header">
+                                <h2><i class="fa-solid fa-chart-pie"></i> Balanço Financeiro Geral</h2>
+                            </div>
+                            <div class="rep-kpi-row">
+                                <div class="rep-kpi-card success">
+                                    <i class="fa-solid fa-arrow-trend-up"></i>
+                                    <div>
+                                        <small>Total de Entradas</small>
+                                        <strong id="rep-entradas">R$ 0,00</strong>
+                                    </div>
+                                </div>
+                                <div class="rep-kpi-card danger">
+                                    <i class="fa-solid fa-arrow-trend-down"></i>
+                                    <div>
+                                        <small>Total de Saídas</small>
+                                        <strong id="rep-saidas">R$ 0,00</strong>
+                                    </div>
+                                </div>
+                                <div class="rep-kpi-card primary">
+                                    <i class="fa-solid fa-scale-balanced"></i>
+                                    <div>
+                                        <small>Balanço Líquido</small>
+                                        <strong id="rep-balanco">R$ 0,00</strong>
+                                    </div>
+                                </div>
+                                <div class="rep-kpi-card purple">
+                                    <i class="fa-solid fa-receipt"></i>
+                                    <div>
+                                        <small>Total de Transações</small>
+                                        <strong id="rep-qtd">0</strong>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </section>
+
+                        <!-- Categorias com maiores gastos -->
+                        <div class="ant-card main-content">
+                            <div class="content-header">
+                                <h2><i class="fa-solid fa-tags"></i> Gastos por Categoria</h2>
+                            </div>
+                            <div id="rep-categorias" class="rep-cats-list">
+                                <p style="color:var(--text-dim)">Carregando...</p>
+                            </div>
+                        </div>
+
+                    </div>
                 </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PERSONALIZAR DASHBOARD -->
+    <div class="modal-overlay hidden" id="modal-custom-dashboard">
+        <div class="modal-card ant-card">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-sliders"></i> Personalizar Widgets do Dashboard</h3>
+                <button class="modal-close" id="btn-close-custom-dash">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+                    Selecione quais quadros deseja manter visíveis na sua visualização principal:
+                </p>
+
+                <div class="widget-toggle-list">
+                    <label class="widget-toggle-item">
+                        <input type="checkbox" id="chk-widget-kpi" checked>
+                        <span><i class="fa-solid fa-wallet"></i> Cards KPI (Total Balance, Net Flow, Orders, Risk Score)</span>
+                    </label>
+                    <label class="widget-toggle-item">
+                        <input type="checkbox" id="chk-widget-chart-section" checked>
+                        <span><i class="fa-solid fa-chart-simple"></i> Gráfico Centralizado (Portfolio Activity)</span>
+                    </label>
+                    <label class="widget-toggle-item">
+                        <input type="checkbox" id="chk-widget-transactions" checked>
+                        <span><i class="fa-solid fa-receipt"></i> Tabela Recent Activity</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-primary" id="btn-save-custom-dash">Salvar Visualização</button>
             </div>
         </div>
     </div>
@@ -289,7 +581,7 @@
     <div class="modal-overlay hidden" id="modal-settings">
         <div class="modal-card ant-card">
             <div class="modal-header">
-                <h3><i class="fa-solid fa-user-gear"></i> Configurações da Conta</h3>
+                <h3><i class="fa-solid fa-user-gear"></i> Perfil & Configurações</h3>
                 <button class="modal-close" id="btn-close-settings">&times;</button>
             </div>
             
@@ -298,8 +590,8 @@
                     <img id="settings-avatar-img" src="/static/icons/avatar.png" alt="Avatar">
                     <div class="profile-details">
                         <h4 id="settings-user-name">Leonir Kuyava</h4>
-                        <span id="settings-user-email">leonir.kuyava@gmail.com</span>
-                        <span class="badge-role"><i class="fa-solid fa-shield-check"></i> Conta Autenticada</span>
+                        <span id="settings-user-email">kuyavaleonir@gmail.com</span>
+                        <span class="badge-role" id="db-status-text"><i class="fa-solid fa-shield-check"></i> Supabase Cloud</span>
                     </div>
                 </div>
 
@@ -312,21 +604,12 @@
                     <label>Nome de Exibição</label>
                     <input type="text" id="input-display-name" value="Leonir Kuyava">
                 </div>
-
-                <div class="form-group">
-                    <label>Status da Autenticação em 2 Etapas (2FA)</label>
-                    <div class="mfa-toggle-card">
-                        <div>
-                            <strong>Autenticação de 2 Fatores (TOTP)</strong>
-                            <p style="font-size:12px; color:var(--text-muted);">Protege sua conta com código de verificação.</p>
-                        </div>
-                        <span class="badge-mfa-active"><i class="fa-solid fa-check-circle"></i> ATIVADO</span>
-                    </div>
-                </div>
             </div>
 
             <div class="modal-footer">
-                <button class="btn btn-secondary" id="btn-cancel-settings">Cancelar</button>
+                <button class="btn btn-secondary" id="btn-user-logout" style="color:var(--danger)">
+                    <i class="fa-solid fa-right-from-bracket"></i> Sair da Conta
+                </button>
                 <button class="btn btn-primary" id="btn-save-settings">Salvar Alterações</button>
             </div>
         </div>
@@ -336,7 +619,7 @@
     <div class="modal-overlay hidden" id="modal-transacao">
         <div class="modal-card ant-card">
             <div class="modal-header">
-                <h3 id="modal-title"><i class="fa-solid fa-plus-circle"></i> Nova Transação</h3>
+                <h3 id="modal-title"><i class="fa-solid fa-plus-circle"></i> Novo Lançamento</h3>
                 <button class="modal-close" id="btn-close-modal">&times;</button>
             </div>
             
@@ -344,11 +627,11 @@
                 <div class="type-selector">
                     <label class="type-option selected" id="opt-despesa">
                         <input type="radio" name="tipo" value="despesa" checked>
-                        <i class="fa-solid fa-circle-arrow-down"></i> Despesa
+                        <i class="fa-solid fa-circle-arrow-down"></i> Saída (Despesa)
                     </label>
                     <label class="type-option" id="opt-receita">
                         <input type="radio" name="tipo" value="receita">
-                        <i class="fa-solid fa-circle-arrow-up"></i> Receita
+                        <i class="fa-solid fa-circle-arrow-up"></i> Entrada (Receita)
                     </label>
                 </div>
 
@@ -362,7 +645,7 @@
 
                 <div class="form-group">
                     <label for="descricao">Descrição</label>
-                    <input type="text" id="descricao" placeholder="Ex: Supermercado, Almoço, Salário..." required>
+                    <input type="text" id="descricao" placeholder="Ex: Mercado, Salário, Investimentos..." required>
                 </div>
 
                 <div class="form-row">
@@ -378,6 +661,7 @@
                             <option value="Educação">Educação</option>
                             <option value="Salário">Salário</option>
                             <option value="Investimentos">Investimentos</option>
+                            <option value="Criptomoedas">Criptomoedas</option>
                             <option value="Outros">Outros</option>
                         </select>
                     </div>
@@ -391,7 +675,7 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" id="btn-cancel-modal">Cancelar</button>
                     <button type="submit" class="btn btn-primary" id="btn-save">
-                        <i class="fa-solid fa-check"></i> Salvar Transação
+                        <i class="fa-solid fa-check"></i> Salvar Lançamento
                     </button>
                 </div>
             </form>

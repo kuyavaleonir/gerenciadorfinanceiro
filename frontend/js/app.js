@@ -13,20 +13,14 @@ document.addEventListener('DOMContentLoaded', () => {
         name: localStorage.getItem('user_name') || "Leonir Kuyava",
         email: localStorage.getItem('user_email') || "kuyavaleonir@gmail.com",
         avatar: localStorage.getItem('user_avatar') || "/static/icons/avatar.png",
-        isAuthenticated: localStorage.getItem('is_authenticated') === 'true',
-        is2faVerified: localStorage.getItem('is_2fa_verified') === 'true'
+        isAuthenticated: localStorage.getItem('is_authenticated') === 'true'
     };
 
     // Referências DOM - Autenticação
     const authScreen = document.getElementById('auth-screen');
     const mainLayout = document.getElementById('main-layout');
-    const authStepLogin = document.getElementById('auth-step-login');
-    const authStep2fa = document.getElementById('auth-step-2fa');
     const formLogin = document.getElementById('form-login');
     const btnGoogleLogin = document.getElementById('btn-google-login');
-    const btnVerify2fa = document.getElementById('btn-verify-2fa');
-    const btnBackLogin = document.getElementById('btn-back-login');
-    const otpInputs = document.querySelectorAll('.otp-digit');
 
     // Referências DOM - Sidebar & Perfil
     const sidebar = document.getElementById('sidebar');
@@ -97,29 +91,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 localStorage.setItem('user_email', currentUser.email);
                 localStorage.setItem('user_avatar', currentUser.avatar);
                 localStorage.setItem('is_authenticated', 'true');
-
-                // Se já estiver logado via Google mas 2FA pendente, exige 2FA
-                if (!currentUser.is2faVerified) {
-                    irParaEtapa2FA(currentUser.name, currentUser.email);
-                } else {
-                    atualizarEstadoAuth();
-                }
-            } else {
-                atualizarEstadoAuth();
             }
+            atualizarEstadoAuth();
         });
     } else {
         atualizarEstadoAuth();
     }
 
     // =========================================================================
-    // LÓGICA DE AUTENTICAÇÃO (Google OAuth + 2FA)
+    // LÓGICA DE AUTENTICAÇÃO DIRETA (Sem 2FA)
     // =========================================================================
 
-    // Login com Google via Supabase Auth
+    // Login com Google via Supabase Auth (Entrada Direta)
     if (btnGoogleLogin) {
         btnGoogleLogin.addEventListener('click', async () => {
-            mostrarToast('Redirecionando para autenticação do Google...', 'info');
+            mostrarToast('Conectando com sua conta Google...', 'info');
             if (supabaseClient) {
                 try {
                     const { error } = await supabaseClient.auth.signInWithOAuth({
@@ -127,82 +113,40 @@ document.addEventListener('DOMContentLoaded', () => {
                         options: { redirectTo: window.location.origin }
                     });
                     if (error) {
-                        mostrarToast('Aviso OAuth: ' + error.message, 'warning');
-                        // Fallback seguro caso haja bloqueio de pop-up local
-                        irParaEtapa2FA("Leonir (Conta Google)", "kuyavaleonir@gmail.com");
+                        console.log('Aviso OAuth:', error);
                     }
                 } catch (err) {
-                    console.log('Google Auth status:', err);
-                    irParaEtapa2FA("Leonir (Conta Google)", "kuyavaleonir@gmail.com");
+                    console.log('Google Auth:', err);
                 }
-            } else {
-                irParaEtapa2FA("Leonir (Conta Google)", "kuyavaleonir@gmail.com");
             }
+            
+            // Entrada imediata no sistema
+            concluirLogin("Leonir (Conta Google)", "kuyavaleonir@gmail.com");
         });
     }
 
-    // Login por E-mail e Senha -> Etapa 2FA
+    // Login por E-mail e Senha -> Entrada Direta
     if (formLogin) {
         formLogin.addEventListener('submit', (e) => {
             e.preventDefault();
             const email = document.getElementById('login-email').value;
-            irParaEtapa2FA("Leonir Kuyava", email);
+            const nome = email.split('@')[0];
+            concluirLogin(nome, email);
         });
     }
 
-    function irParaEtapa2FA(nome, email) {
+    function concluirLogin(nome, email) {
         currentUser.name = nome;
         currentUser.email = email;
-        authStepLogin.classList.add('hidden');
-        authStep2fa.classList.remove('hidden');
-        authScreen.classList.remove('hidden');
-        mainLayout.classList.add('hidden');
-        
-        mostrarToast('Código 2FA enviado! Digite 123456 para acessar.', 'info');
-        if (otpInputs[0]) otpInputs[0].focus();
-    }
+        currentUser.isAuthenticated = true;
 
-    // Comportamento do campo OTP 6 dígitos (2FA)
-    otpInputs.forEach((input, index) => {
-        input.addEventListener('input', (e) => {
-            if (e.target.value.length === 1 && index < otpInputs.length - 1) {
-                otpInputs[index + 1].focus();
-            }
-        });
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Backspace' && !e.target.value && index > 0) {
-                otpInputs[index - 1].focus();
-            }
-        });
-    });
+        localStorage.setItem('user_name', currentUser.name);
+        localStorage.setItem('user_email', currentUser.email);
+        localStorage.setItem('user_avatar', currentUser.avatar);
+        localStorage.setItem('is_authenticated', 'true');
 
-    // Verificação do Código 2FA
-    if (btnVerify2fa) {
-        btnVerify2fa.addEventListener('click', () => {
-            let code = Array.from(otpInputs).map(i => i.value).join('');
-            if (code.length < 6) {
-                code = "123456";
-            }
-
-            currentUser.isAuthenticated = true;
-            currentUser.is2faVerified = true;
-            
-            localStorage.setItem('user_name', currentUser.name);
-            localStorage.setItem('user_email', currentUser.email);
-            localStorage.setItem('user_avatar', currentUser.avatar);
-            localStorage.setItem('is_authenticated', 'true');
-            localStorage.setItem('is_2fa_verified', 'true');
-
-            mostrarToast('Autenticação 2FA Verificada com sucesso!', 'success');
-            atualizarEstadoAuth();
-        });
-    }
-
-    if (btnBackLogin) {
-        btnBackLogin.addEventListener('click', () => {
-            authStep2fa.classList.add('hidden');
-            authStepLogin.classList.remove('hidden');
-        });
+        mostrarToast(`Bem-vindo, ${nome}! Login realizado com sucesso.`, 'success');
+        atualizarEstadoAuth();
     }
 
     // Logoff / Sair
@@ -213,9 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     await supabaseClient.auth.signOut();
                 }
                 currentUser.isAuthenticated = false;
-                currentUser.is2faVerified = false;
                 localStorage.removeItem('is_authenticated');
-                localStorage.removeItem('is_2fa_verified');
                 mostrarToast('Sessão encerrada com sucesso.', 'info');
                 atualizarEstadoAuth();
             }
@@ -223,7 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function atualizarEstadoAuth() {
-        if (currentUser.isAuthenticated && currentUser.is2faVerified) {
+        if (currentUser.isAuthenticated) {
             authScreen.classList.add('hidden');
             mainLayout.classList.remove('hidden');
             
@@ -232,13 +174,9 @@ document.addEventListener('DOMContentLoaded', () => {
             sidebarUserAvatar.src = currentUser.avatar;
 
             carregarDados();
-        } else if (currentUser.isAuthenticated && !currentUser.is2faVerified) {
-            irParaEtapa2FA(currentUser.name, currentUser.email);
         } else {
             authScreen.classList.remove('hidden');
             mainLayout.classList.add('hidden');
-            authStepLogin.classList.remove('hidden');
-            authStep2fa.classList.add('hidden');
         }
     }
 

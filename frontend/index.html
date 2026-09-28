@@ -31,7 +31,7 @@
         <div class="glow-orb orb-3"></div>
     </div>
 
-    <!-- TELA DE LOGIN & AUTENTICAÇÃO (Google OAuth + 2FA) -->
+    <!-- TELA DE LOGIN & AUTENTICAÇÃO (Google OAuth / Supabase Auth) -->
     <div id="auth-screen" class="auth-container">
         <div class="auth-card ant-card">
             <div class="auth-header">
@@ -42,7 +42,7 @@
                 <p>Acesse sua conta para gerenciar suas finanças</p>
             </div>
 
-            <!-- Etapa 1: Login com Google / E-mail -->
+            <!-- Login com Google / E-mail -->
             <div id="auth-step-login" class="auth-step active">
                 <button id="btn-google-login" class="btn btn-google btn-block">
                     <svg class="google-icon" viewBox="0 0 24 24">
@@ -69,31 +69,6 @@
                         Entrar na Conta <i class="fa-solid fa-arrow-right"></i>
                     </button>
                 </form>
-            </div>
-
-            <!-- Etapa 2: Autenticação de Dois Fatores (2FA) -->
-            <div id="auth-step-2fa" class="auth-step hidden">
-                <div class="mfa-badge">
-                    <i class="fa-solid fa-shield-halved"></i>
-                </div>
-                <h3>Autenticação em 2 Etapas (2FA)</h3>
-                <p>Digite o código de 6 dígitos gerado no seu aplicativo autenticador ou enviado por e-mail:</p>
-
-                <div class="otp-inputs" id="otp-container">
-                    <input type="text" maxlength="1" class="otp-digit" autofocus>
-                    <input type="text" maxlength="1" class="otp-digit">
-                    <input type="text" maxlength="1" class="otp-digit">
-                    <input type="text" maxlength="1" class="otp-digit">
-                    <input type="text" maxlength="1" class="otp-digit">
-                    <input type="text" maxlength="1" class="otp-digit">
-                </div>
-
-                <button id="btn-verify-2fa" class="btn btn-primary btn-block">
-                    Verificar e Entrar <i class="fa-solid fa-check-double"></i>
-                </button>
-                <button id="btn-back-login" class="btn btn-link btn-block">
-                    <i class="fa-solid fa-arrow-left"></i> Voltar ao login
-                </button>
             </div>
         </div>
     </div>
@@ -151,12 +126,6 @@
                             <span>Preferências</span>
                         </a>
                     </li>
-                    <li class="nav-item" id="nav-btn-security">
-                        <a href="#seguranca">
-                            <i class="fa-solid fa-shield-halved"></i>
-                            <span>Segurança (2FA)</span>
-                        </a>
-                    </li>
                 </ul>
             </nav>
 
@@ -165,7 +134,7 @@
                 <div class="user-profile-card">
                     <div class="avatar-wrapper">
                         <img id="sidebar-user-avatar" src="/static/icons/avatar.png" alt="Perfil">
-                        <span class="status-indicator online" title="Sessão Ativa (2FA Verificado)"></span>
+                        <span class="status-indicator online" title="Sessão Ativa"></span>
                     </div>
                     <div class="user-info">
                         <span class="user-name" id="sidebar-user-name">Leonir Kuyava</span>
@@ -194,9 +163,9 @@
                 </div>
                 
                 <div class="navbar-right">
-                    <div class="security-badge" title="Autenticação 2FA Verificada">
-                        <i class="fa-solid fa-shield-check text-success"></i>
-                        <span>2FA Ativo</span>
+                    <div class="security-badge" title="Autenticado via Google OAuth">
+                        <i class="fa-brands fa-google text-success"></i>
+                        <span>Google Auth Ativo</span>
                     </div>
                     <button class="btn btn-secondary" id="btn-refresh" title="Atualizar dados">
                         <i class="fa-solid fa-rotate-right"></i>

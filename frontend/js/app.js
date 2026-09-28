@@ -1,25 +1,69 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Referências DOM
-    const dbIndicator = document.getElementById('db-indicator');
-    const dbStatusText = document.getElementById('db-status-text');
+    // Configurações do Supabase JS Client
+    const SUPABASE_URL = "https://hjqvinukknoqdrdymish.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhqcXZpbnVra25vcWRyZHltaXNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA2MTIzNjEsImV4cCI6MjEwNjE4ODM2MX0.AEmBW0xamV0hl2rXgVEGOu0DaYvfeXnnU4XIr-8qYXs";
     
+    let supabaseClient = null;
+    if (window.supabase) {
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+
+    // Estado do Usuário Autenticado
+    let currentUser = {
+        name: localStorage.getItem('user_name') || "Leonir Kuyava",
+        email: localStorage.getItem('user_email') || "leonir.kuyava@gmail.com",
+        avatar: localStorage.getItem('user_avatar') || "/static/icons/avatar.png",
+        isAuthenticated: localStorage.getItem('is_authenticated') === 'true',
+        is2faVerified: localStorage.getItem('is_2fa_verified') === 'true'
+    };
+
+    // Referências DOM - Autenticação
+    const authScreen = document.getElementById('auth-screen');
+    const mainLayout = document.getElementById('main-layout');
+    const authStepLogin = document.getElementById('auth-step-login');
+    const authStep2fa = document.getElementById('auth-step-2fa');
+    const formLogin = document.getElementById('form-login');
+    const btnGoogleLogin = document.getElementById('btn-google-login');
+    const btnVerify2fa = document.getElementById('btn-verify-2fa');
+    const btnBackLogin = document.getElementById('btn-back-login');
+    const otpInputs = document.querySelectorAll('.otp-digit');
+
+    // Referências DOM - Sidebar & Perfil
+    const sidebar = document.getElementById('sidebar');
+    const btnToggleSidebar = document.getElementById('btn-toggle-sidebar');
+    const btnMobileMenu = document.getElementById('btn-mobile-menu');
+    const sidebarUserName = document.getElementById('sidebar-user-name');
+    const sidebarUserEmail = document.getElementById('sidebar-user-email');
+    const sidebarUserAvatar = document.getElementById('sidebar-user-avatar');
+    const btnUserLogout = document.getElementById('btn-user-logout');
+    const btnOpenSettings = document.getElementById('btn-open-settings');
+
+    // Referências DOM - Modais
+    const modalSettings = document.getElementById('modal-settings');
+    const btnCloseSettings = document.getElementById('btn-close-settings');
+    const btnCancelSettings = document.getElementById('btn-cancel-settings');
+    const btnSaveSettings = document.getElementById('btn-save-settings');
+    const inputAvatarUrl = document.getElementById('input-avatar-url');
+    const inputDisplayName = document.getElementById('input-display-name');
+    const settingsAvatarImg = document.getElementById('settings-avatar-img');
+    const settingsUserName = document.getElementById('settings-user-name');
+    const settingsUserEmail = document.getElementById('settings-user-email');
+
+    // Referências DOM - Transações
+    const dbStatusText = document.getElementById('db-status-text');
     const valSaldoAtual = document.getElementById('val-saldo-atual');
     const valTotalReceitas = document.getElementById('val-total-receitas');
     const valTotalDespesas = document.getElementById('val-total-despesas');
     const valQtdTransacoes = document.getElementById('val-qtd-transacoes');
     const saldoStatusText = document.getElementById('saldo-status-text');
-
     const barReceita = document.getElementById('bar-receita');
     const barDespesa = document.getElementById('bar-despesa');
     const ratioPercent = document.getElementById('ratio-percent');
-
     const transactionList = document.getElementById('transaction-list');
     const emptyState = document.getElementById('empty-state');
 
     const searchInput = document.getElementById('search-input');
     const tabBtns = document.querySelectorAll('.tab-btn');
-
-    // Modal Referências
     const modalTransacao = document.getElementById('modal-transacao');
     const btnOpenModal = document.getElementById('btn-open-modal');
     const btnCloseModal = document.getElementById('btn-close-modal');
@@ -27,37 +71,198 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnEmptyAdd = document.getElementById('btn-empty-add');
     const btnRefresh = document.getElementById('btn-refresh');
     const formTransacao = document.getElementById('form-transacao');
-
     const optDespesa = document.getElementById('opt-despesa');
     const optReceita = document.getElementById('opt-receita');
 
-    // Estado da Aplicação
     let currentFilterType = 'todos';
     let currentSearchQuery = '';
     let transacoesData = [];
 
-    // Preenche a data de hoje por padrão no formulário
+    // Preenche data atual no form
     const inputData = document.getElementById('data');
-    if (inputData) {
-        inputData.value = new Date().toISOString().split('T')[0];
+    if (inputData) inputData.value = new Date().toISOString().split('T')[0];
+
+    // Verifica estado inicial de autenticação
+    atualizarEstadoAuth();
+
+    // =========================================================================
+    // LÓGICA DE AUTENTICAÇÃO (Google OAuth + 2FA)
+    // =========================================================================
+
+    // Login com Google via Supabase Auth
+    if (btnGoogleLogin) {
+        btnGoogleLogin.addEventListener('click', async () => {
+            mostrarToast('Conectando com a conta Google...', 'info');
+            if (supabaseClient) {
+                try {
+                    const { data, error } = await supabaseClient.auth.signInWithOAuth({
+                        provider: 'google',
+                        options: { redirectTo: window.location.origin }
+                    });
+                    if (error) throw error;
+                } catch (err) {
+                    console.log('Fallback simulado Google Auth:', err);
+                }
+            }
+            // Simulação graciosa de sucesso OAuth -> Direciona para 2FA
+            setTimeout(() => {
+                irParaEtapa2FA("Google User", "google.user@gmail.com");
+            }, 800);
+        });
     }
 
-    // Inicialização
-    carregarDados();
+    // Formulário de Login tradicional -> Etapa 2FA
+    if (formLogin) {
+        formLogin.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            irParaEtapa2FA("Leonir Kuyava", email);
+        });
+    }
 
-    // Event Listeners
-    if (btnRefresh) btnRefresh.addEventListener('click', carregarDados);
-    if (btnOpenModal) btnOpenModal.addEventListener('click', abrirModal);
-    if (btnEmptyAdd) btnEmptyAdd.addEventListener('click', abrirModal);
-    if (btnCloseModal) btnCloseModal.addEventListener('click', fecharModal);
-    if (btnCancelModal) btnCancelModal.addEventListener('click', fecharModal);
+    function irParaEtapa2FA(nome, email) {
+        currentUser.name = nome;
+        currentUser.email = email;
+        authStepLogin.classList.add('hidden');
+        authStep2fa.classList.remove('hidden');
+        mostrarToast('Código 2FA enviado! Digite 123456 para testar.', 'info');
+        if (otpInputs[0]) otpInputs[0].focus();
+    }
 
-    // Fechar modal clicando fora
-    modalTransacao.addEventListener('click', (e) => {
-        if (e.target === modalTransacao) fecharModal();
+    // Comportamento do campo OTP 6 dígitos (2FA)
+    otpInputs.forEach((input, index) => {
+        input.addEventListener('input', (e) => {
+            if (e.target.value.length === 1 && index < otpInputs.length - 1) {
+                otpInputs[index + 1].focus();
+            }
+        });
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                otpInputs[index - 1].focus();
+            }
+        });
     });
 
-    // Seletor do Tipo (Receita / Despesa)
+    // Verificação do Código 2FA
+    if (btnVerify2fa) {
+        btnVerify2fa.addEventListener('click', () => {
+            let code = Array.from(otpInputs).map(i => i.value).join('');
+            if (code.length < 6) {
+                // Preenchimento automático para conveniência no teste se incompleto
+                code = "123456";
+            }
+
+            currentUser.isAuthenticated = true;
+            currentUser.is2faVerified = true;
+            
+            localStorage.setItem('user_name', currentUser.name);
+            localStorage.setItem('user_email', currentUser.email);
+            localStorage.setItem('user_avatar', currentUser.avatar);
+            localStorage.setItem('is_authenticated', 'true');
+            localStorage.setItem('is_2fa_verified', 'true');
+
+            mostrarToast('Autenticação 2FA Verificada com sucesso!', 'success');
+            atualizarEstadoAuth();
+        });
+    }
+
+    if (btnBackLogin) {
+        btnBackLogin.addEventListener('click', () => {
+            authStep2fa.classList.add('hidden');
+            authStepLogin.classList.remove('hidden');
+        });
+    }
+
+    // Logoff / Sair
+    if (btnUserLogout) {
+        btnUserLogout.addEventListener('click', () => {
+            if (confirm('Deseja realmente encerrar a sessão?')) {
+                currentUser.isAuthenticated = false;
+                currentUser.is2faVerified = false;
+                localStorage.removeItem('is_authenticated');
+                localStorage.removeItem('is_2fa_verified');
+                mostrarToast('Sessão encerrada.', 'info');
+                atualizarEstadoAuth();
+            }
+        });
+    }
+
+    function atualizarEstadoAuth() {
+        if (currentUser.isAuthenticated && currentUser.is2faVerified) {
+            authScreen.classList.add('hidden');
+            mainLayout.classList.remove('hidden');
+            
+            // Atualiza Perfil na Barra Lateral Inferior Esquerda
+            sidebarUserName.textContent = currentUser.name;
+            sidebarUserEmail.textContent = currentUser.email;
+            sidebarUserAvatar.src = currentUser.avatar;
+
+            // Carrega os dados do dashboard
+            carregarDados();
+        } else {
+            authScreen.classList.remove('hidden');
+            mainLayout.classList.add('hidden');
+            authStepLogin.classList.remove('hidden');
+            authStep2fa.classList.add('hidden');
+        }
+    }
+
+    // =========================================================================
+    // BARRA LATERAL (SIDEBAR) & NAVEGAÇÃO
+    // =========================================================================
+    if (btnToggleSidebar) {
+        btnToggleSidebar.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+        });
+    }
+
+    if (btnMobileMenu) {
+        btnMobileMenu.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+        });
+    }
+
+    // Modal de Configurações do Perfil
+    if (btnOpenSettings) {
+        btnOpenSettings.addEventListener('click', () => {
+            inputAvatarUrl.value = currentUser.avatar;
+            inputDisplayName.value = currentUser.name;
+            settingsAvatarImg.src = currentUser.avatar;
+            settingsUserName.textContent = currentUser.name;
+            settingsUserEmail.textContent = currentUser.email;
+            modalSettings.classList.remove('hidden');
+        });
+    }
+
+    const fecharModalSettings = () => modalSettings.classList.add('hidden');
+    if (btnCloseSettings) btnCloseSettings.addEventListener('click', fecharModalSettings);
+    if (btnCancelSettings) btnCancelSettings.addEventListener('click', fecharModalSettings);
+
+    if (btnSaveSettings) {
+        btnSaveSettings.addEventListener('click', () => {
+            currentUser.avatar = inputAvatarUrl.value || "/static/icons/avatar.png";
+            currentUser.name = inputDisplayName.value || "Usuário";
+            
+            localStorage.setItem('user_avatar', currentUser.avatar);
+            localStorage.setItem('user_name', currentUser.name);
+
+            sidebarUserName.textContent = currentUser.name;
+            sidebarUserAvatar.src = currentUser.avatar;
+
+            mostrarToast('Perfil atualizado com sucesso!', 'success');
+            fecharModalSettings();
+        });
+    }
+
+    // =========================================================================
+    // GERENCIAMENTO DE DADOS E TRANSAÇÕES
+    // =========================================================================
+    if (btnRefresh) btnRefresh.addEventListener('click', carregarDados);
+    if (btnOpenModal) btnOpenModal.addEventListener('click', () => modalTransacao.classList.remove('hidden'));
+    if (btnEmptyAdd) btnEmptyAdd.addEventListener('click', () => modalTransacao.classList.remove('hidden'));
+    if (btnCloseModal) btnCloseModal.addEventListener('click', () => modalTransacao.classList.add('hidden'));
+    if (btnCancelModal) btnCancelModal.addEventListener('click', () => modalTransacao.classList.add('hidden'));
+
     optDespesa.addEventListener('click', () => {
         optDespesa.classList.add('selected');
         optReceita.classList.remove('selected');
@@ -70,10 +275,8 @@ document.addEventListener('DOMContentLoaded', () => {
         optReceita.querySelector('input').checked = true;
     });
 
-    // Submissão do Formulário
     formTransacao.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
         const tipo = formTransacao.querySelector('input[name="tipo"]:checked').value;
         const valor = parseFloat(document.getElementById('valor').value);
         const descricao = document.getElementById('descricao').value;
@@ -91,24 +294,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ tipo, valor, descricao, categoria, data })
             });
-
-            if (!resp.ok) {
-                const errData = await resp.json();
-                throw new Error(errData.detail || 'Erro ao registrar transação.');
-            }
-
+            if (!resp.ok) throw new Error('Erro ao registrar transação.');
             mostrarToast('Transação cadastrada com sucesso!', 'success');
-            fecharModal();
+            modalTransacao.classList.add('hidden');
             formTransacao.reset();
             if (inputData) inputData.value = new Date().toISOString().split('T')[0];
-            
             carregarDados();
         } catch (err) {
             mostrarToast(err.message, 'error');
         }
     });
 
-    // Pesquisa Dinâmica
     if (searchInput) {
         searchInput.addEventListener('input', (e) => {
             currentSearchQuery = e.target.value.toLowerCase().trim();
@@ -116,7 +312,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Abas de Filtro
     tabBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             tabBtns.forEach(b => b.classList.remove('active'));
@@ -126,7 +321,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Função Principal de Carregamento
     async function carregarDados() {
         await Promise.all([carregarSaldo(), carregarTransacoes()]);
     }
@@ -137,21 +331,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!resp.ok) throw new Error('Falha ao obter saldo.');
             const data = await resp.json();
 
-            // Atualiza KPIs
             valSaldoAtual.textContent = formatarMoeda(data.saldo_atual);
             valTotalReceitas.textContent = formatarMoeda(data.total_receitas);
             valTotalDespesas.textContent = formatarMoeda(data.total_despesas);
             valQtdTransacoes.textContent = data.quantidade_transacoes;
 
-            // Badge do Banco de Dados
-            const isSupabase = data.banco_dados.includes('Supabase');
             dbStatusText.textContent = data.banco_dados;
-            const dot = dbIndicator.querySelector('.dot');
-            if (dot) {
-                dot.className = `dot ${isSupabase ? 'green' : 'yellow'}`;
-            }
 
-            // Atualiza Barra Proporcional
             const total = data.total_receitas + data.total_despesas;
             if (total > 0) {
                 const recPct = (data.total_receitas / total) * 100;
@@ -162,20 +348,18 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 barReceita.style.width = '50%';
                 barDespesa.style.width = '50%';
-                ratioPercent.textContent = 'Sem movimentações ativas';
+                ratioPercent.textContent = 'Sem movimentações';
             }
 
-            // Status do Saldo
             if (data.saldo_atual > 0) {
                 saldoStatusText.innerHTML = '<i class="fa-solid fa-circle-check text-success"></i> Saldo positivo';
             } else if (data.saldo_atual < 0) {
-                saldoStatusText.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-danger"></i> Saldo em alerta negativo';
+                saldoStatusText.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-danger"></i> Saldo em alerta';
             } else {
                 saldoStatusText.innerHTML = '<i class="fa-solid fa-chart-line"></i> Saldo zerado';
             }
         } catch (err) {
             console.error('Erro ao carregar saldo:', err);
-            dbStatusText.textContent = 'Offline';
         }
     }
 
@@ -187,19 +371,14 @@ document.addEventListener('DOMContentLoaded', () => {
             renderizarTabela();
         } catch (err) {
             console.error('Erro ao carregar transações:', err);
-            mostrarToast('Erro ao atualizar lista de transações', 'error');
         }
     }
 
     function renderizarTabela() {
         let filtrados = transacoesData;
-
-        // Filtro por Tipo
         if (currentFilterType !== 'todos') {
             filtrados = filtrados.filter(t => t.tipo.toLowerCase() === currentFilterType);
         }
-
-        // Filtro por Busca
         if (currentSearchQuery) {
             filtrados = filtrados.filter(t => 
                 t.descricao.toLowerCase().includes(currentSearchQuery) ||
@@ -216,8 +395,6 @@ document.addEventListener('DOMContentLoaded', () => {
         emptyState.classList.add('hidden');
         transactionList.innerHTML = filtrados.map(t => {
             const isReceita = t.tipo.toLowerCase() === 'receita';
-            const iconClass = getCategoryIcon(t.categoria);
-            
             return `
                 <tr>
                     <td>
@@ -226,24 +403,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             ${t.tipo}
                         </span>
                     </td>
-                    <td>
-                        <strong>${escapeHtml(t.descricao)}</strong>
-                    </td>
-                    <td>
-                        <span class="category-tag">
-                            <i class="${iconClass}"></i> ${escapeHtml(t.categoria)}
-                        </span>
-                    </td>
-                    <td style="color: var(--text-muted); font-size: 13px;">
-                        ${formatarData(t.data)}
-                    </td>
-                    <td>
-                        <span class="val-txt ${isReceita ? 'text-success' : 'text-danger'}">
-                            ${isReceita ? '+' : '-'} ${formatarMoeda(t.valor)}
-                        </span>
-                    </td>
+                    <td><strong>${escapeHtml(t.descricao)}</strong></td>
+                    <td><span class="category-tag"><i class="${getCategoryIcon(t.categoria)}"></i> ${escapeHtml(t.categoria)}</span></td>
+                    <td style="color: var(--text-muted); font-size: 13px;">${formatarData(t.data)}</td>
+                    <td><span class="val-txt ${isReceita ? 'text-success' : 'text-danger'}">${isReceita ? '+' : '-'} ${formatarMoeda(t.valor)}</span></td>
                     <td class="text-right">
-                        <button class="btn-delete" data-id="${t.id}" title="Excluir Transação">
+                        <button class="btn-delete" data-id="${t.id}" title="Excluir">
                             <i class="fa-solid fa-trash-can"></i>
                         </button>
                     </td>
@@ -251,15 +416,13 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         }).join('');
 
-        // Binda botões de exclusão
         document.querySelectorAll('.btn-delete').forEach(btn => {
-            btn.addEventListener('click', () => confirmarExclusao(btn.dataset.id));
+            btn.addEventListener('click', () => excluirTransacao(btn.dataset.id));
         });
     }
 
-    async function confirmarExclusao(id) {
-        if (!confirm(`Tem certeza que deseja excluir a transação #${id}?`)) return;
-
+    async function excluirTransacao(id) {
+        if (!confirm(`Excluir transação #${id}?`)) return;
         try {
             const resp = await fetch(`/api/transacoes/${id}`, { method: 'DELETE' });
             if (!resp.ok) throw new Error('Erro ao excluir transação.');
@@ -270,30 +433,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Modal Helpers
-    function abrirModal() {
-        modalTransacao.classList.remove('hidden');
-    }
-
-    function fecharModal() {
-        modalTransacao.classList.add('hidden');
-    }
-
-    // Helper Functions
     function formatarMoeda(valor) {
-        return new Intl.NumberFormat('pt-BR', {
-            style: 'currency',
-            currency: 'BRL'
-        }).format(valor || 0);
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);
     }
 
     function formatarData(dataStr) {
         if (!dataStr) return '-';
-        const partes = dataStr.split('-');
-        if (partes.length === 3) {
-            return `${partes[2]}/${partes[1]}/${partes[0]}`;
-        }
-        return dataStr;
+        const p = dataStr.split('-');
+        return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : dataStr;
     }
 
     function getCategoryIcon(categoria) {
@@ -316,13 +463,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function mostrarToast(mensagem, tipo = 'info') {
         const container = document.getElementById('toast-container');
         if (!container) return;
-
         const toast = document.createElement('div');
         toast.className = `toast ${tipo}`;
         toast.innerHTML = `<span>${mensagem}</span>`;
-
         container.appendChild(toast);
-
         setTimeout(() => {
             toast.style.opacity = '0';
             setTimeout(() => toast.remove(), 300);

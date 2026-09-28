@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.env
+.env
+venv/
+env/
+.venv/
+
+# Database local (se não quiser subir o db para o github por privacidade financeira)
+*.sqlite
+*.sqlite3
+*.db
+
+# IDE e sistema
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

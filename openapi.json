@@ -1,0 +1,382 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Assistente de Controle Financeiro",
+    "description": "API para gerenciar transações financeiras pessoais (receitas, despesas, saldo e relatórios) com suporte a Custom GPT do ChatGPT.",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Health Check",
+        "description": "Verifica se o servidor está funcionando.",
+        "operationId": "raiz__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/transacoes": {
+      "post": {
+        "summary": "Adicionar nova transação (receita ou despesa)",
+        "description": "Registra uma nova receita ou despesa financeira.\nO ChatGPT chamará esta ação sempre que o usuário disser que gastou ou recebeu dinheiro.",
+        "operationId": "adicionar_transacao_api_transacoes_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransacaoEntrada"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransacaoResposta"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Listar transações",
+        "description": "Retorna uma lista das transações mais recentes cadastradas.",
+        "operationId": "listar_transacoes_api_transacoes_get",
+        "parameters": [
+          {
+            "name": "tipo",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filtrar por 'receita' ou 'despesa'",
+              "title": "Tipo"
+            },
+            "description": "Filtrar por 'receita' ou 'despesa'"
+          },
+          {
+            "name": "categoria",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filtrar por categoria específica",
+              "title": "Categoria"
+            },
+            "description": "Filtrar por categoria específica"
+          },
+          {
+            "name": "limite",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "description": "Quantidade máxima de itens retornados",
+              "default": 20,
+              "title": "Limite"
+            },
+            "description": "Quantidade máxima de itens retornados"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TransacaoResposta"
+                  },
+                  "title": "Response Listar Transacoes Api Transacoes Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/saldo": {
+      "get": {
+        "summary": "Consultar saldo e totais acumulados",
+        "description": "Retorna o total de receitas, total de despesas e o saldo líquido atual.\nO ChatGPT chamará esta ação quando o usuário perguntar 'quanto tenho?', 'qual meu saldo?', etc.",
+        "operationId": "consultar_saldo_api_saldo_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SaldoResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/transacoes/{transacao_id}": {
+      "delete": {
+        "summary": "Remover uma transação pelo ID",
+        "description": "Exclui uma transação existente caso o usuário tenha registrado por engano.",
+        "operationId": "excluir_transacao_api_transacoes__transacao_id__delete",
+        "parameters": [
+          {
+            "name": "transacao_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Transacao Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "SaldoResposta": {
+        "properties": {
+          "total_receitas": {
+            "type": "number",
+            "title": "Total Receitas"
+          },
+          "total_despesas": {
+            "type": "number",
+            "title": "Total Despesas"
+          },
+          "saldo_atual": {
+            "type": "number",
+            "title": "Saldo Atual"
+          },
+          "quantidade_transacoes": {
+            "type": "integer",
+            "title": "Quantidade Transacoes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_receitas",
+          "total_despesas",
+          "saldo_atual",
+          "quantidade_transacoes"
+        ],
+        "title": "SaldoResposta"
+      },
+      "TransacaoEntrada": {
+        "properties": {
+          "tipo": {
+            "type": "string",
+            "title": "Tipo",
+            "description": "Tipo da transação: 'receita' ou 'despesa'",
+            "example": "despesa"
+          },
+          "valor": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Valor",
+            "description": "Valor monetário em reais (deve ser maior que zero)",
+            "example": 45.5
+          },
+          "descricao": {
+            "type": "string",
+            "title": "Descricao",
+            "description": "Descrição resumida do gasto ou ganho",
+            "example": "Almoço no restaurante"
+          },
+          "categoria": {
+            "type": "string",
+            "title": "Categoria",
+            "description": "Categoria (ex: Alimentação, Transporte, Moradia, Lazer, Salário, Investimentos)",
+            "example": "Alimentação"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data",
+            "description": "Data da transação no formato YYYY-MM-DD. Se omitida, usará a data atual.",
+            "example": "2026-09-28"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tipo",
+          "valor",
+          "descricao",
+          "categoria"
+        ],
+        "title": "TransacaoEntrada"
+      },
+      "TransacaoResposta": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "tipo": {
+            "type": "string",
+            "title": "Tipo"
+          },
+          "valor": {
+            "type": "number",
+            "title": "Valor"
+          },
+          "descricao": {
+            "type": "string",
+            "title": "Descricao"
+          },
+          "categoria": {
+            "type": "string",
+            "title": "Categoria"
+          },
+          "data": {
+            "type": "string",
+            "title": "Data"
+          },
+          "criado_em": {
+            "type": "string",
+            "title": "Criado Em"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "tipo",
+          "valor",
+          "descricao",
+          "categoria",
+          "data",
+          "criado_em"
+        ],
+        "title": "TransacaoResposta"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

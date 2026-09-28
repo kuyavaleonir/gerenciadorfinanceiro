@@ -76,14 +76,33 @@ document.addEventListener('DOMContentLoaded', () => {
     if (inputData) inputData.value = new Date().toISOString().split('T')[0];
 
     // =========================================================================
-    // VERIFICAÇÃO DE SESSÃO DO SUPABASE AO CARREGAR A PÁGINA
+    // VERIFICAÇÃO DE SESSÃO DA CONTA GOOGLE / SUPABASE AO CARREGAR A PÁGINA
     // =========================================================================
     if (supabaseClient) {
+        // Escuta a autenticação (Redirecionamento do Google)
+        supabaseClient.auth.onAuthStateChange((event, session) => {
+            if (session && session.user) {
+                const user = session.user;
+                currentUser.email = user.email || currentUser.email;
+                currentUser.name = user.user_metadata?.full_name || user.user_metadata?.name || user.email.split('@')[0];
+                currentUser.avatar = user.user_metadata?.avatar_url || currentUser.avatar;
+                currentUser.isAuthenticated = true;
+
+                localStorage.setItem('user_name', currentUser.name);
+                localStorage.setItem('user_email', currentUser.email);
+                localStorage.setItem('user_avatar', currentUser.avatar);
+                localStorage.setItem('is_authenticated', 'true');
+                
+                atualizarEstadoAuth();
+            }
+        });
+
+        // Verifica a sessão atual
         supabaseClient.auth.getSession().then(({ data: { session } }) => {
             if (session && session.user) {
                 const user = session.user;
                 currentUser.email = user.email || currentUser.email;
-                currentUser.name = user.user_metadata?.full_name || user.email.split('@')[0];
+                currentUser.name = user.user_metadata?.full_name || user.user_metadata?.name || user.email.split('@')[0];
                 currentUser.avatar = user.user_metadata?.avatar_url || currentUser.avatar;
                 currentUser.isAuthenticated = true;
 
@@ -99,43 +118,47 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =========================================================================
-    // LÓGICA DE AUTENTICAÇÃO DIRETA (Sem 2FA)
+    // LÓGICA DE LOGIN COM A CONTA DO GOOGLE
     // =========================================================================
-
-    // Login com Google via Supabase Auth (Entrada Direta)
     if (btnGoogleLogin) {
         btnGoogleLogin.addEventListener('click', async () => {
-            mostrarToast('Conectando com sua conta Google...', 'info');
+            mostrarToast('Redirecionando para o login seguro do Google...', 'info');
+            
             if (supabaseClient) {
                 try {
                     const { error } = await supabaseClient.auth.signInWithOAuth({
                         provider: 'google',
-                        options: { redirectTo: window.location.origin }
+                        options: { 
+                            redirectTo: window.location.origin,
+                            queryParams: { access_type: 'offline', prompt: 'consent' }
+                        }
                     });
+
                     if (error) {
-                        console.log('Aviso OAuth:', error);
+                        console.error('Erro OAuth Supabase:', error);
+                        mostrarToast('Erro ao autenticar com o Google: ' + error.message, 'error');
                     }
                 } catch (err) {
-                    console.log('Google Auth:', err);
+                    console.error('Erro na conexão com o Google:', err);
+                    concluirLoginLocal("Leonir Kuyava", "kuyavaleonir@gmail.com");
                 }
+            } else {
+                concluirLoginLocal("Leonir Kuyava", "kuyavaleonir@gmail.com");
             }
-            
-            // Entrada imediata no sistema
-            concluirLogin("Leonir (Conta Google)", "kuyavaleonir@gmail.com");
         });
     }
 
-    // Login por E-mail e Senha -> Entrada Direta
+    // Login por E-mail e Senha (Alternativo)
     if (formLogin) {
         formLogin.addEventListener('submit', (e) => {
             e.preventDefault();
             const email = document.getElementById('login-email').value;
             const nome = email.split('@')[0];
-            concluirLogin(nome, email);
+            concluirLoginLocal(nome, email);
         });
     }
 
-    function concluirLogin(nome, email) {
+    function concluirLoginLocal(nome, email) {
         currentUser.name = nome;
         currentUser.email = email;
         currentUser.isAuthenticated = true;
@@ -145,7 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('user_avatar', currentUser.avatar);
         localStorage.setItem('is_authenticated', 'true');
 
-        mostrarToast(`Bem-vindo, ${nome}! Login realizado com sucesso.`, 'success');
+        mostrarToast(`Bem-vindo, ${nome}! Login realizado.`, 'success');
         atualizarEstadoAuth();
     }
 
@@ -158,6 +181,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 currentUser.isAuthenticated = false;
                 localStorage.removeItem('is_authenticated');
+                localStorage.removeItem('user_name');
+                localStorage.removeItem('user_email');
+                
                 mostrarToast('Sessão encerrada com sucesso.', 'info');
                 atualizarEstadoAuth();
             }

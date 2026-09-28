@@ -24,7 +24,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <link rel="stylesheet" href="/static/css/style.css?v=2">
+    <link rel="stylesheet" href="/static/css/style.css?v=3">
 </head>
 <body class="ant-theme-dark">
     <div class="app-background">
@@ -37,11 +37,11 @@
     <div id="auth-screen" class="auth-container">
         <div class="auth-card ant-card">
             <div class="auth-header">
-                <div class="auth-logo">
-                    <i class="fa-solid fa-chart-line"></i>
+                <div class="brand-icon-box auth-logo-box">
+                    <i class="fa-solid fa-cube"></i>
                 </div>
-                <h2>FINANÇAS PRO</h2>
-                <p>Plataforma Inteligente de Gestão Financeira</p>
+                <h2>Portfolio command</h2>
+                <p>Monitor wallet exposure, settlement flow, and financial activity.</p>
             </div>
 
             <div id="auth-step-login" class="auth-step active">
@@ -685,7 +685,7 @@
     <!-- Toast Notifications -->
     <div id="toast-container" class="toast-container"></div>
 
-    <script src="/static/js/app.js?v=2"></script>
+    <script src="/static/js/app.js?v=3"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {

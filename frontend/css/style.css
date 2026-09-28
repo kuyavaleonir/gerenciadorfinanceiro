@@ -102,21 +102,23 @@ body {
     margin-bottom: 24px;
 }
 
-.auth-logo {
-    width: 56px;
-    height: 56px;
-    background: linear-gradient(135deg, var(--primary), var(--purple));
-    border-radius: 16px;
-    display: inline-flex;
+.auth-logo-box {
+    width: 52px;
+    height: 52px;
+    margin: 0 auto 16px auto;
+    font-size: 22px;
+    background: #182234;
+    border: 1px solid var(--sidebar-border);
+    border-radius: 14px;
+    display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 26px;
-    color: white;
-    margin-bottom: 12px;
+    color: var(--text-main);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
 .auth-header h2 {
-    font-size: 22px;
+    font-size: 24px;
     font-weight: 800;
     letter-spacing: -0.5px;
 }
@@ -124,7 +126,7 @@ body {
 .auth-header p {
     font-size: 13px;
     color: var(--text-muted);
-    margin-top: 4px;
+    margin-top: 6px;
 }
 
 .btn-google {

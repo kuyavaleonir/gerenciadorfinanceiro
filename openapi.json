@@ -2,15 +2,25 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Assistente de Controle Financeiro",
-    "description": "API para gerenciar transações financeiras pessoais (receitas, despesas, saldo e relatórios) com suporte a Custom GPT do ChatGPT.",
-    "version": "1.0.0"
+    "description": "API para gerenciar transações financeiras pessoais com suporte a Web Dashboard, Custom GPTs do ChatGPT e Supabase.",
+    "version": "2.0.0"
   },
+  "servers": [
+    {
+      "url": "https://gerenciadorfinanceiro.onrender.com",
+      "description": "Servidor de Produção (Render)"
+    },
+    {
+      "url": "http://127.0.0.1:8000",
+      "description": "Servidor Local (Desenvolvimento)"
+    }
+  ],
   "paths": {
-    "/": {
+    "/health": {
       "get": {
         "summary": "Health Check",
-        "description": "Verifica se o servidor está funcionando.",
-        "operationId": "raiz__get",
+        "description": "Verifica se o servidor e o banco de dados estão ativos.",
+        "operationId": "health_check_health_get",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -26,7 +36,7 @@
     "/api/transacoes": {
       "post": {
         "summary": "Adicionar nova transação (receita ou despesa)",
-        "description": "Registra uma nova receita ou despesa financeira.\nO ChatGPT chamará esta ação sempre que o usuário disser que gastou ou recebeu dinheiro.",
+        "description": "Registra uma nova receita ou despesa financeira no banco de dados ativo (Supabase ou SQLite).",
         "operationId": "adicionar_transacao_api_transacoes_post",
         "requestBody": {
           "required": true,
@@ -109,7 +119,7 @@
             "schema": {
               "type": "integer",
               "description": "Quantidade máxima de itens retornados",
-              "default": 20,
+              "default": 50,
               "title": "Limite"
             },
             "description": "Quantidade máxima de itens retornados"
@@ -143,10 +153,27 @@
         }
       }
     },
+    "/api/atividade-mensal": {
+      "get": {
+        "summary": "Atividade financeira por mês",
+        "description": "Retorna totais de receitas e despesas agrupados por mês (últimos 12 meses).",
+        "operationId": "atividade_mensal_api_atividade_mensal_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/saldo": {
       "get": {
         "summary": "Consultar saldo e totais acumulados",
-        "description": "Retorna o total de receitas, total de despesas e o saldo líquido atual.\nO ChatGPT chamará esta ação quando o usuário perguntar 'quanto tenho?', 'qual meu saldo?', etc.",
+        "description": "Retorna o total de receitas, total de despesas e o saldo líquido atual.",
         "operationId": "consultar_saldo_api_saldo_get",
         "responses": {
           "200": {
@@ -165,7 +192,7 @@
     "/api/transacoes/{transacao_id}": {
       "delete": {
         "summary": "Remover uma transação pelo ID",
-        "description": "Exclui uma transação existente caso o usuário tenha registrado por engano.",
+        "description": "Exclui uma transação existente pelo seu ID.",
         "operationId": "excluir_transacao_api_transacoes__transacao_id__delete",
         "parameters": [
           {
@@ -194,6 +221,91 @@
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard": {
+      "get": {
+        "summary": "Dashboard Direct Web",
+        "description": "Serve a interface Web moderna.",
+        "operationId": "serve_index_dashboard_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth": {
+      "get": {
+        "summary": "Auth Web",
+        "description": "Serve a interface Web moderna.",
+        "operationId": "serve_index_auth_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/register": {
+      "get": {
+        "summary": "Register Web",
+        "description": "Serve a interface Web moderna.",
+        "operationId": "serve_index_register_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/login": {
+      "get": {
+        "summary": "Login Web",
+        "description": "Serve a interface Web moderna.",
+        "operationId": "serve_index_login_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "summary": "Dashboard Web",
+        "description": "Serve a interface Web moderna.",
+        "operationId": "serve_index__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
               }
             }
           }
@@ -233,6 +345,10 @@
           "quantidade_transacoes": {
             "type": "integer",
             "title": "Quantidade Transacoes"
+          },
+          "banco_dados": {
+            "type": "string",
+            "title": "Banco Dados"
           }
         },
         "type": "object",
@@ -240,7 +356,8 @@
           "total_receitas",
           "total_despesas",
           "saldo_atual",
-          "quantidade_transacoes"
+          "quantidade_transacoes",
+          "banco_dados"
         ],
         "title": "SaldoResposta"
       },
@@ -321,7 +438,14 @@
             "title": "Data"
           },
           "criado_em": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Criado Em"
           }
         },
@@ -332,8 +456,7 @@
           "valor",
           "descricao",
           "categoria",
-          "data",
-          "criado_em"
+          "data"
         ],
         "title": "TransacaoResposta"
       },

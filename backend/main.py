@@ -16,7 +16,11 @@ database.init_db()
 app = FastAPI(
     title="Assistente de Controle Financeiro",
     description="API para gerenciar transações financeiras pessoais com suporte a Web Dashboard, Custom GPTs do ChatGPT e Supabase.",
-    version="2.0.0"
+    version="2.0.0",
+    servers=[
+        {"url": "https://gerenciadorfinanceiro.onrender.com", "description": "Servidor de Produção (Render)"},
+        {"url": "http://127.0.0.1:8000", "description": "Servidor Local (Desenvolvimento)"}
+    ]
 )
 
 # Configuração do CORS

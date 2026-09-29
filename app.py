@@ -11,6 +11,9 @@ class UniversalApp:
             return _wsgi_app(*args, **kwargs)
         return asgi_app(*args, **kwargs)
 
+    def __getattr__(self, name):
+        return getattr(asgi_app, name)
+
 app = UniversalApp()
 
 if __name__ == "__main__":

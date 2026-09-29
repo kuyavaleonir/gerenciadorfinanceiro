@@ -264,6 +264,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Trata retorno PKCE do Supabase Google OAuth (?code=...)
+    const initialUrlParams = new URLSearchParams(window.location.search);
+    if (initialUrlParams.has('code') && supabaseClient) {
+        const authCode = initialUrlParams.get('code');
+        supabaseClient.auth.exchangeCodeForSession(authCode).then(({ data, error }) => {
+            if (data && data.session && data.session.user) {
+                _setUserFromSession(data.session.user);
+                atualizarEstadoAuth();
+                mostrarToast('Login com Google realizado com sucesso! 🎉', 'success');
+            }
+            history.replaceState(null, document.title, window.location.pathname);
+        });
+    }
+
     if (supabaseClient) {
         supabaseClient.auth.onAuthStateChange((event, session) => {
             if (session && session.user) {

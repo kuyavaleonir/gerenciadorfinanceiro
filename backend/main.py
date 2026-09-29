@@ -88,8 +88,12 @@ def excluir_transacao(transacao_id: int):
     return {"status": "sucesso", "mensagem": f"Transação #{transacao_id} removida com sucesso."}
 
 @app.get("/", summary="Dashboard Web")
+@app.get("/login", summary="Login Web")
+@app.get("/register", summary="Register Web")
+@app.get("/auth", summary="Auth Web")
+@app.get("/dashboard", summary="Dashboard Direct Web")
 def serve_index():
-    """Serve a interface Web interativa."""
+    """Serve a interface Web moderna."""
     index_file = os.path.join(FRONTEND_DIR, "index.html")
     if os.path.exists(index_file):
         return FileResponse(index_file)

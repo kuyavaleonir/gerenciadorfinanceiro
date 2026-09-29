@@ -295,119 +295,59 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // =========================================================================
-    // FLUXO 1: LOGIN COM GOOGLE (IN-PAGE VIA GOOGLE IDENTITY & OAUTH SEGURO)
-    // =========================================================================
-    const GOOGLE_CLIENT_ID = "16555138939-6ub3u50sj5128i3u9v4l4ngkh8qqunuo.apps.googleusercontent.com";
-
-    function inicializarGoogleIdentity() {
-        if (window.google && window.google.accounts && window.google.accounts.id) {
-            try {
-                window.google.accounts.id.initialize({
-                    client_id: GOOGLE_CLIENT_ID,
-                    callback: processarGoogleCredential,
-                    auto_select: false,
-                    cancel_on_tap_outside: true
-                });
-            } catch (e) {
-                console.warn('Google Identity initialize warning:', e);
-            }
-        }
+    // Captura mensagens de erro de OAuth se houver retorno com falha
+    const hashStr = window.location.hash ? window.location.hash.substring(1) : '';
+    const hashParams = new URLSearchParams(hashStr);
+    const searchParams = new URLSearchParams(window.location.search);
+    const oauthError = searchParams.get('error_description') || hashParams.get('error_description');
+    if (oauthError) {
+        const cleanedMsg = decodeURIComponent(oauthError).replace(/\+/g, ' ');
+        mostrarAlerta('Erro na autenticação: ' + cleanedMsg, 'error');
+        history.replaceState(null, document.title, window.location.pathname);
     }
 
-    async function processarGoogleCredential(response) {
-        if (!response || !response.credential) return;
-        esconderAlerta();
-        setBtnLoading(btnGoogleLogin, googleSpinner, true);
-        mostrarToast('Autenticando com sua conta Google...', 'info');
+    // =========================================================================
+    // FLUXO 1: LOGIN COM GOOGLE (OAUTH NATIVO VIA SUPABASE)
+    // =========================================================================
+    if (btnGoogleLogin) {
+        btnGoogleLogin.addEventListener('click', async () => {
+            esconderAlerta();
+            setBtnLoading(btnGoogleLogin, googleSpinner, true);
+            mostrarToast('Conectando ao Google...', 'info');
 
-        try {
+            // Define o retorno para o endereço atual (localhost ou produção no Render)
+            const currentOrigin = window.location.origin;
+            const currentPath = window.location.pathname.endsWith('/') ? window.location.pathname : window.location.pathname + '/';
+            const targetRedirect = currentOrigin + currentPath;
+
             if (supabaseClient) {
-                const { data, error } = await supabaseClient.auth.signInWithIdToken({
-                    provider: 'google',
-                    token: response.credential
-                });
+                try {
+                    const { data, error } = await supabaseClient.auth.signInWithOAuth({
+                        provider: 'google',
+                        options: {
+                            redirectTo: targetRedirect,
+                            queryParams: {
+                                prompt: 'select_account'
+                            }
+                        }
+                    });
 
-                if (error) {
+                    if (error) {
+                        setBtnLoading(btnGoogleLogin, googleSpinner, false);
+                        const msg = traduzirErroSupabase(error.message);
+                        mostrarAlerta(msg, 'error');
+                        mostrarToast('Erro no Google: ' + error.message, 'error');
+                    }
+                } catch (err) {
                     setBtnLoading(btnGoogleLogin, googleSpinner, false);
-                    const msg = traduzirErroSupabase(error.message);
-                    mostrarAlerta(msg, 'error');
-                    mostrarToast(msg, 'error');
-                    return;
-                }
-
-                if (data && data.session && data.session.user) {
-                    _setUserFromSession(data.session.user);
-                    mostrarToast(`Bem-vindo(a), ${currentUser.name}! 🎉`, 'success');
-                    atualizarEstadoAuth();
-                } else {
-                    setBtnLoading(btnGoogleLogin, googleSpinner, false);
-                    mostrarAlerta('Não foi possível obter a sessão do Google.', 'error');
+                    mostrarAlerta('Falha ao conectar com o serviço do Google.', 'error');
                 }
             } else {
                 setBtnLoading(btnGoogleLogin, googleSpinner, false);
                 concluirLoginLocal("Leonir Kuyava", "kuyavaleonir@gmail.com");
             }
-        } catch (err) {
-            setBtnLoading(btnGoogleLogin, googleSpinner, false);
-            mostrarAlerta('Erro ao validar token com o Google.', 'error');
-        }
-    }
-
-    if (btnGoogleLogin) {
-        btnGoogleLogin.addEventListener('click', async () => {
-            esconderAlerta();
-
-            // 1. Tenta autenticação direta sem redirecionamento externo (GSI In-Page)
-            if (window.google && window.google.accounts && window.google.accounts.id) {
-                inicializarGoogleIdentity();
-                window.google.accounts.id.prompt((notification) => {
-                    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-                        // Se o prompt suspenso for bloqueado pelo navegador, executa o fluxo OAuth
-                        executarOAuthFallback();
-                    }
-                });
-                return;
-            }
-
-            // 2. Fallback OAuth padrão (garantindo que NUNCA redireciona para telas antigas externas)
-            executarOAuthFallback();
         });
     }
-
-    async function executarOAuthFallback() {
-        setBtnLoading(btnGoogleLogin, googleSpinner, true);
-        mostrarToast('Conectando ao Google...', 'info');
-
-        const currentOrigin = window.location.origin;
-        const targetRedirect = currentOrigin + window.location.pathname;
-
-        if (supabaseClient) {
-            try {
-                const { error } = await supabaseClient.auth.signInWithOAuth({
-                    provider: 'google',
-                    options: { 
-                        redirectTo: targetRedirect,
-                        queryParams: { prompt: 'select_account' }
-                    }
-                });
-                if (error) {
-                    setBtnLoading(btnGoogleLogin, googleSpinner, false);
-                    mostrarAlerta(traduzirErroSupabase(error.message), 'error');
-                    mostrarToast('Erro no Google: ' + error.message, 'error');
-                }
-            } catch (err) {
-                setBtnLoading(btnGoogleLogin, googleSpinner, false);
-                mostrarAlerta('Falha ao conectar com o serviço Google.', 'error');
-            }
-        } else {
-            setBtnLoading(btnGoogleLogin, googleSpinner, false);
-            concluirLoginLocal("Leonir Kuyava", "kuyavaleonir@gmail.com");
-        }
-    }
-
-    // Pré-carrega o cliente Google Identity se já estiver disponível
-    setTimeout(inicializarGoogleIdentity, 1000);
 
     // =========================================================================
     // FLUXO 2: LOGIN COM E-MAIL E SENHA (REAL SUPABASE)
